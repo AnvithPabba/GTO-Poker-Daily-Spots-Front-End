@@ -27,6 +27,10 @@ flowchart TD
 
 Pause/resume controls, sound preference, persisted playback state, concrete
 range-cell drill-down, and archive cursor pagination are implemented. The
+Playwright suite runs the same deterministic journeys at desktop and a mobile
+viewport using Chromium mobile emulation, so a clean checkout only needs the
+documented Chromium browser install. A separately provisioned WebKit job may
+be added for browser-engine coverage without changing product assertions. The
 remaining deployment-level work is provider authentication UI and connecting
 the local admin calendar mutations to a separately protected operator
 deployment.

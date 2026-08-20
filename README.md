@@ -16,6 +16,11 @@ pnpm test:e2e
 pnpm build
 ```
 
+The Playwright config runs each journey in desktop Chromium and a Chromium
+mobile viewport. Install the browser once with `pnpm exec playwright install
+chromium`; the mobile project intentionally does not require WebKit so a clean
+checkout is not dependent on an uninstalled optional browser binary.
+
 The Vite/React shell is implemented. Run locally with
 `corepack pnpm dev` and open `http://127.0.0.1:4173`.
 
