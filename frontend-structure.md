@@ -657,6 +657,8 @@ web derivative. Record its provenance separately from the OpenDecks artwork.
 5. Recover an ambiguous submission with the same idempotency key.
 6. Browse archive/fallback spots while preserving actual Pacific dates.
 7. Exercise reduced-motion, keyboard-only, mobile, and missing-asset paths.
+8. Open the loopback admin dashboard, observe the below-three warning, and
+   exercise a guarded queue action through the local proxy.
 
 ## Ordered implementation sequence
 
@@ -667,8 +669,9 @@ web derivative. Record its provenance separately from the OpenDecks artwork.
 5. Implement the featured-hand allocator and typed submission snapshot.
 6. Add the 13x13 navigator, exact-combo drill-down, tray, and extra allocators.
 7. Integrate attempt results, official/practice retry, archive, and fallback UX.
-8. Complete accessibility, responsive, component, and Playwright gates before
-   beginning the admin interface.
+8. Keep the localhost admin interface behind the guarded proxy and complete
+   accessibility, responsive, component, and Playwright gates before any
+   separately protected operator deployment.
 
 ## Frontend completion checklist
 
