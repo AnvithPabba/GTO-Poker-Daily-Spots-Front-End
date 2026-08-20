@@ -1,0 +1,18 @@
+{
+  "name": "@poker-trainer/frontend",
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "node scripts/lint.mjs src",
+    "assets:check": "node scripts/verify-card-assets.mjs"
+  },
+  "dependencies": {
+    "@poker-trainer/contracts": "file:../contracts"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
