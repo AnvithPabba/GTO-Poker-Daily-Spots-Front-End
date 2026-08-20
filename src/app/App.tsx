@@ -1,11 +1,8 @@
-import { Link, Route, Routes } from "react-router-dom";
+import { Link, Route, Routes, useParams } from "react-router-dom";
 import { DailyPage } from "../features/daily/DailyPage.js";
 import { ChallengePage } from "../features/challenge/ChallengePage.js";
 import { ArchivePage } from "../features/archive/ArchivePage.js";
 import { AdminPage } from "../features/admin/AdminPage.js";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } });
 
 function Layout() {
   return (
@@ -21,7 +18,7 @@ function Layout() {
       <main className="content"><Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/daily" element={<DailyPage />} />
-        <Route path="/challenge/:spotId" element={<ChallengePage />} />
+        <Route path="/challenge/:spotId" element={<ChallengeRoute />} />
         <Route path="/archive" element={<ArchivePage />} />
         <Route path="/archive/:date" element={<ArchivePage />} />
         <Route path="/admin" element={<AdminPage />} />
@@ -29,6 +26,16 @@ function Layout() {
       </Routes></main>
     </div>
   );
+}
+
+/**
+ * React Router can reuse the same route element when only a parameter changes.
+ * Remounting the challenge by spot ID prevents playback/answer state from one
+ * immutable spot leaking into the next spot.
+ */
+function ChallengeRoute() {
+  const { spotId = "" } = useParams();
+  return <ChallengePage key={spotId} />;
 }
 
 function LandingPage() {
@@ -44,4 +51,4 @@ function NotFound() {
   return <section className="panel"><h1>Page not found</h1><Link to="/">Return home</Link></section>;
 }
 
-export default function App() { return <QueryClientProvider client={queryClient}><Layout /></QueryClientProvider>; }
+export default function App() { return <Layout />; }

@@ -2,8 +2,9 @@
 
 ## Implemented v2 shell
 
-The current source implements the public v2 boundary rather than the former
-mode-dependent payload split. `App.tsx` composes the router and TanStack Query;
+The current source implements the unified public v2 boundary rather than the
+former mode-dependent payload split. `main.tsx` is the single composition root
+for the router and TanStack Query;
 `src/api/client.ts` validates every response with shared Zod schemas;
 `features/` contains daily, challenge, archive, and local-admin pages;
 `components/` contains the table, dynamic legal-action allocator, range grid,
@@ -24,10 +25,11 @@ flowchart TD
     Table --> Cards[CardAssetProvider]
 ```
 
-Pause/resume controls, sound preference, and persisted playback state are now
-implemented. The remaining deployment-level work is provider authentication
-UI, archive cursor pagination in the page, and connecting the local admin
-calendar mutations to a separately protected operator deployment.
+Pause/resume controls, sound preference, persisted playback state, concrete
+range-cell drill-down, and archive cursor pagination are implemented. The
+remaining deployment-level work is provider authentication UI and connecting
+the local admin calendar mutations to a separately protected operator
+deployment.
 
 ## Purpose and boundaries
 
