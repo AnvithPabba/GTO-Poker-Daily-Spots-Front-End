@@ -1,0 +1,6 @@
+import type { AttemptResponse } from "@poker-trainer/contracts";
+import { formatBasisPoints } from "../domain/allocations.js";
+
+export function ResultsPanel({ result, onRetry }: { result: AttemptResponse; onRetry: () => void }) {
+  return <section className="panel results" aria-live="polite"><p className="eyebrow">{result.official ? "Official result" : "Practice result"}</p><h2>{result.overallSimilarity.toFixed(1)}% similarity</h2><p>Metric: {result.metric.key.toUpperCase()} · Aggregated equally across selected hands.</p>{result.hands.map((hand) => <article className="result-hand" key={hand.combo}><h3>{hand.combo} · {hand.similarity.toFixed(1)}%</h3><p>GTO majority: <strong>{hand.gtoMajorityActionId}</strong></p><ul>{hand.actions.map((action) => <li key={action.actionId}><span>{action.actionId}</span><span>You {formatBasisPoints(action.submittedBasisPoints)}</span><span>GTO {formatBasisPoints(action.gtoBasisPoints)}</span><span className={action.signedDifferenceBasisPoints > 0 ? "positive" : "negative"}>{action.signedDifferenceBasisPoints > 0 ? "+" : ""}{formatBasisPoints(action.signedDifferenceBasisPoints)}</span></li>)}</ul></article>)}{result.official && <button className="primary-button" type="button" onClick={onRetry}>Try another practice answer</button>}</section>;
+}

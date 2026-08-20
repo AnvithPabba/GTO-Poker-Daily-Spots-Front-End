@@ -12,7 +12,7 @@ RUN pnpm --dir contracts install --frozen-lockfile && pnpm --dir contracts build
 COPY frontend/package.json frontend/pnpm-lock.yaml ./frontend/
 RUN pnpm --dir frontend install --frozen-lockfile
 
-COPY frontend/tsconfig.base.json frontend/tsconfig.json ./frontend/
+COPY frontend/tsconfig.base.json frontend/tsconfig.json frontend/vite.config.ts frontend/vitest.config.ts frontend/playwright.config.ts frontend/index.html ./frontend/
 COPY frontend/src ./frontend/src
 COPY frontend/scripts ./frontend/scripts
 COPY frontend/public ./frontend/public

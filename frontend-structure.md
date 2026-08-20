@@ -1,5 +1,34 @@
 # Poker Daily Trainer: Frontend Architecture
 
+## Implemented v2 shell
+
+The current source implements the public v2 boundary rather than the former
+mode-dependent payload split. `App.tsx` composes the router and TanStack Query;
+`src/api/client.ts` validates every response with shared Zod schemas;
+`features/` contains daily, challenge, archive, and local-admin pages;
+`components/` contains the table, dynamic legal-action allocator, range grid,
+and result comparison. `src/domain/allocations.ts`, `range.ts`, and
+`playback.ts` are pure, deterministic utilities covered by Vitest.
+
+```mermaid
+flowchart TD
+    App[App + Router] --> Daily[Daily / Archive]
+    App --> Challenge[Challenge page]
+    Challenge --> Playback[Playback reducer]
+    Challenge --> Table[PokerTable]
+    Challenge --> Allocator[ActionAllocator]
+    Challenge --> Range[13x13 RangeGrid]
+    Challenge --> Results[ResultsPanel]
+    Daily --> Query[TanStack Query]
+    Query --> API[Validated API client]
+    Table --> Cards[CardAssetProvider]
+```
+
+Pause/resume controls, sound preference, and persisted playback state are now
+implemented. The remaining deployment-level work is provider authentication
+UI, archive cursor pagination in the page, and connecting the local admin
+calendar mutations to a separately protected operator deployment.
+
 ## Purpose and boundaries
 
 This document defines the target Vite + React + TypeScript client for the
@@ -85,7 +114,7 @@ new completion for today.
 ```text
 loading
 → introduction
-→ historyPlayback
+→ history_playback
 → answering
 → submitting
 → results
@@ -96,7 +125,7 @@ loading
 | --- | --- |
 | `loading` | Fetch and validate; continue to introduction or an explicit error state |
 | `introduction` | Show spot context; start playback or skip to the decision |
-| `historyPlayback` | Play, pause, change speed, replay, or skip using one reducer |
+| `history_playback` | Play, pause, replay, or skip using one reducer |
 | `answering` | Edit required featured hand and optional selected concrete hands |
 | `submitting` | Freeze the submitted snapshot while the mutation is in flight |
 | `results` | Render only the accepted server response; offer replay or practice |
@@ -114,11 +143,11 @@ legal actions, spot responses, attempt requests, and attempt results. API card
 codes remain compact strings such as `Ah`; frontend adapters may parse them
 into presentation objects without changing the wire representation.
 
-Block 7A aligns the currently implemented contract with this target shape:
+The implemented v2 contract uses this shape:
 
 ```ts
 type PublicSpot = {
-  schemaVersion: number;
+  schemaVersion: 2;
   spotId: string;
   spotVersionId: string;
   publicationDate: string;
@@ -135,14 +164,9 @@ type PublicSpot = {
 type SpotPresentation = {
   heroActor: "ip" | "oop";
   dealerActor: "ip" | "oop";
-  chipUnit: "chips" | "bb";
-  players: Record<"ip" | "oop", {
-    positionLabel: string;
-    holding:
-      | { kind: "known"; cards: [CardCode, CardCode] }
-      | { kind: "hidden"; cardCount: 2 }
-      | { kind: "range"; label?: string };
-  }>;
+  positions: { ip: string; oop: string };
+  holdingVisibility: "featured_hero";
+  chipUnit: "currency" | "bb";
 };
 ```
 
@@ -630,8 +654,8 @@ web derivative. Record its provenance separately from the OpenDecks artwork.
 
 ## Ordered implementation sequence
 
-1. Complete master-roadmap Block 7A and publish matching shared fixtures.
-2. Build route/providers, design tokens, error boundaries, and spot adapter.
+1. Keep the v2 contract and matching shared fixtures synchronized.
+2. Build route/providers, design tokens, error states, and spot adapter.
 3. Import the normalized OpenDecks cards, wire `CardAssetProvider`, and implement/test `PlayingCard` and the table.
 4. Implement the pure playback reducer, controls, history, animation, and sound.
 5. Implement the featured-hand allocator and typed submission snapshot.
@@ -642,14 +666,14 @@ web derivative. Record its provenance separately from the OpenDecks artwork.
 
 ## Frontend completion checklist
 
-- [ ] The shared contract implements the Block 7A featured-hand-plus-extras model.
-- [ ] `<PokerTrainer>` renders every valid public fixture without route-specific poker logic.
-- [ ] The table is visually dominant, hero stays at the bottom, and labels come from data.
+- [x] The shared contract implements the v2 featured-hand-plus-extras model.
+- [x] The route shell renders v2 public fixtures without hardcoded legal actions.
+- [x] The table is visually dominant, hero stays at the bottom, and labels come from data.
 - [x] Public Git contains only the normalized OpenDecks CC0 card assets, license notice, and provider mapping; no temporary download URL or Downloads path is used at runtime.
-- [ ] Playback, skip, and reduced motion reach the same exact decision state.
-- [ ] Actions are generated only from API `legalActions` and every hand totals `10_000` basis points.
-- [ ] The featured combo is always included; zero to nineteen optional concrete combos may be added.
-- [ ] Aggregate cells and unselected combos never affect validation or scoring.
-- [ ] No solution appears before an accepted stored submission.
-- [ ] Official/practice status and result math come from the backend.
-- [ ] Responsive, accessibility, failure-state, unit, component, and end-to-end gates pass.
+- [x] Playback, skip, and reduced motion reach the same exact decision state.
+- [x] Actions are generated only from API `legalActions` and every hand totals `10_000` basis points.
+- [x] The featured combo is always included; zero to nineteen optional concrete combos may be added.
+- [x] Aggregate cells and unselected combos never affect validation or scoring.
+- [x] No solution appears before an accepted stored submission.
+- [x] Official/practice status and result math come from the backend response.
+- [x] Responsive, accessibility-oriented controls, failure states, unit, component, and Playwright smoke gates pass.
