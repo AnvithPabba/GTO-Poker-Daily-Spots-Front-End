@@ -4,7 +4,9 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
-  retries: process.env.CI ? 2 : 0,
+  // Assertion failures must be visible rather than masked by retries. The
+  // webServer timeout below is the only startup tolerance this suite needs.
+  retries: 0,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: "http://127.0.0.1:4175",
