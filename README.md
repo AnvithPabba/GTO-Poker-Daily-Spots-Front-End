@@ -86,7 +86,10 @@ percentages are withheld until the private backend accepts a submission.
 
 The `/admin` page is a local operator view. It reads the loopback-only queue,
 Pacific publication calendar, coverage warning, and guarded job controls; it
-does not contain solver output or answer data in the frontend bundle.
+does not contain solver output or answer data in the frontend bundle. In the
+Compose development stack, Nginx adds a private marker for admin proxy
+requests and the API accepts it only under the explicit non-production
+`ADMIN_TRUSTED_PROXY` setting; production retains strict loopback enforcement.
 
 ## Visual assets and public-repository boundary
 
