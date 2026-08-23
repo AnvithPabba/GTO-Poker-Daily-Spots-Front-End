@@ -1,60 +1,114 @@
-import { useEffect, useMemo, useReducer, useState } from "react";
-import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import type { AttemptRequest, PublicHistoryEvent } from "@poker-trainer/contracts";
+import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { CreateAttemptRequest, PublicHistoryEvent } from "@poker-trainer/contracts";
 import { api } from "../../api/client.js";
 import { ActionAllocator } from "../../components/ActionAllocator.js";
+import { HandSelectionModal } from "../../components/HandSelectionModal.js";
 import { PokerTable } from "../../components/PokerTable.js";
-import { RangeGrid } from "../../components/RangeGrid.js";
-import { ResultsPanel } from "../../components/ResultsPanel.js";
+import { PreflopPanel } from "../../components/PreflopPanel.js";
 import { equalAllocation, isValidAllocation } from "../../domain/allocations.js";
 import { initialPlayback, reducePlayback, visibleHistory } from "../../domain/playback.js";
 
-function historyLabel(event: PublicHistoryEvent): string { return event.kind === "deal" ? `Deal ${event.card}` : `${event.actor.toUpperCase()} ${event.solverLabel}`; }
+function historyLabel(event: PublicHistoryEvent, positions: { ip: string; oop: string }): string {
+  if (event.kind === "deal") return `Deal ${event.card}`;
+  if (event.kind === "deal_board") return `Deal ${event.street}: ${event.cards.join(" ")}`;
+  if (event.kind === "deal_hole") return `${positions[event.actor]} receives hole cards`;
+  if (event.kind === "decision") return `Decision: ${positions[event.actor]} to act`;
+  return `${positions[event.actor]} ${event.solverLabel}`;
+}
+
+function freshIdempotencyKey(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `attempt-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 export function ChallengePage() {
   const { spotId = "" } = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ["spot", spotId], queryFn: () => api.spot(spotId), enabled: spotId.length > 0 });
-  const playbackKey = `poker-trainer:playback:${spotId}`;
-  const [playback, dispatch] = useReducer((state: ReturnType<typeof initialPlayback>, action: Parameters<typeof reducePlayback>[1]) => reducePlayback(state, action, query.data?.history ?? []), undefined, () => {
-    if (typeof window === "undefined") return initialPlayback();
-    try {
-      const saved = window.localStorage.getItem(playbackKey);
-      if (!saved) return initialPlayback();
-      const parsed = JSON.parse(saved) as ReturnType<typeof initialPlayback>;
-      return typeof parsed.eventIndex === "number" && typeof parsed.phase === "string" ? { ...initialPlayback(), ...parsed } : initialPlayback();
-    } catch { return initialPlayback(); }
-  });
-  useEffect(() => { try { window.localStorage.setItem(playbackKey, JSON.stringify(playback)); } catch { /* storage is optional */ } }, [playback, playbackKey]);
+  const [playback, dispatch] = useReducer((state: ReturnType<typeof initialPlayback>, action: Parameters<typeof reducePlayback>[1]) => reducePlayback(state, action, query.data?.history ?? []), undefined, initialPlayback);
   const [selected, setSelected] = useState<string[]>([]);
   const [allocationByCombo, setAllocationByCombo] = useState<Record<string, Record<string, number>>>({});
-  const [submitted, setSubmitted] = useState(false);
-  const [result, setResult] = useState<Awaited<ReturnType<typeof api.submit>> | undefined>();
-  const [submitError, setSubmitError] = useState<string | undefined>();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingCombo, setEditingCombo] = useState<string>();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string>();
+  const pendingSubmission = useRef<{ serialized: string; key: string } | undefined>(undefined);
   const spot = query.data;
   const actions = spot?.legalActions ?? [];
-  const ids = useMemo(() => actions.map((action) => action.id), [actions]);
-  const blocked = useMemo(() => new Set(spot?.decision.board ?? []), [spot?.decision.board]);
-  if (query.isLoading) return <p className="loading" role="status">Loading challenge…</p>;
-  if (query.isError || !spot) return <section className="panel error"><h1>Challenge unavailable</h1><p>{query.error instanceof Error ? query.error.message : "This spot could not be loaded."}</p><button type="button" onClick={() => void query.refetch()}>Retry</button></section>;
-  const loadedSpot = spot;
-  const featuredCombo = loadedSpot.featuredCombo;
+  const actionIds = useMemo(() => actions.map((action) => action.id), [actions]);
 
-  function toggleCombo(combo: string) {
-    if (combo === featuredCombo) return;
-    setSelected((current) => current.includes(combo) ? current.filter((value) => value !== combo) : current.length >= 20 ? current : [...current, combo]);
-    setAllocationByCombo((current) => current[combo] ? current : { ...current, [combo]: equalAllocation(ids) });
-  }
-  function allocationFor(combo: string) { return allocationByCombo[combo] ?? equalAllocation(ids); }
-  async function submit() {
-    const combos = [featuredCombo, ...selected.filter((combo) => combo !== featuredCombo)];
-    if (combos.some((combo) => !isValidAllocation(allocationFor(combo), ids))) { setSubmitError("Every selected hand must total exactly 100%."); return; }
-    const payload: AttemptRequest = { spotVersionId: loadedSpot.spotVersionId, idempotencyKey: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`, hands: combos.map((combo) => ({ combo, allocations: allocationFor(combo) })) };
-    setSubmitError(undefined); setSubmitted(true);
-    try { setResult(await api.submit(loadedSpot.spotId, payload)); } catch (error) { setSubmitted(false); setSubmitError(error instanceof Error ? error.message : "Submission failed"); }
-  }
-  if (result) return <ResultsPanel result={result} onRetry={() => { setResult(undefined); setSubmitted(false); dispatch({ type: "replay" }); }} />;
-  const visible = visibleHistory(spot, playback);
+  useEffect(() => {
+    if (playback.phase !== "history_playback" || playback.paused) return;
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) { dispatch({ type: "skip" }); return; }
+    const timeout = window.setTimeout(() => dispatch({ type: "next" }), 900);
+    return () => window.clearTimeout(timeout);
+  }, [playback.eventIndex, playback.paused, playback.phase]);
+
+  if (query.isLoading) return <p className="loading" role="status">Loading challenge…</p>;
+  if (query.isError || !spot) return <section className="panel error-state"><p className="eyebrow">Could not load spot</p><h1>Challenge unavailable</h1><p>{query.error instanceof Error ? query.error.message : "This spot could not be loaded."}</p><button className="secondary-button" type="button" onClick={() => void query.refetch()}>Try again</button></section>;
+
+  const loadedSpot = spot;
+  const featured = loadedSpot.featuredCombo;
+  const allSelected = [featured, ...selected.filter((combo) => combo !== featured)];
   const answering = playback.phase === "answering";
-  return <section><div className="page-heading"><div><p className="eyebrow">{spot.presentation.positions[spot.presentation.heroActor]} · {spot.decision.street}</p><h1>What is your strategy?</h1></div><span className="featured">Featured: {featuredCombo}</span></div><div className="challenge-layout"><div><PokerTable spot={spot} state={answering ? spot.decision : spot.initialState} /><section className="panel"><h2>Hand history</h2><ol className="history">{visible.map((event, index) => <li key={`${index}-${event.kind}`}>{historyLabel(event)}</li>)}{!visible.length && <li>Preflop setup</li>}</ol><div className="challenge-controls">{playback.phase === "introduction" && <button type="button" onClick={() => dispatch({ type: "start" })}>Start replay</button>}{playback.phase !== "introduction" && !answering && !playback.paused && <button type="button" onClick={() => dispatch({ type: "pause" })}>Pause</button>}{playback.paused && <button type="button" onClick={() => dispatch({ type: "resume" })}>Resume</button>}{playback.phase !== "introduction" && !answering && <button type="button" onClick={() => dispatch({ type: "next" })}>Next action</button>}{!answering && <button type="button" onClick={() => dispatch({ type: "skip" })}>Skip to decision</button>}{answering && <button type="button" onClick={() => dispatch({ type: "replay" })}>Replay history</button>}<button type="button" aria-pressed={playback.soundEnabled} onClick={() => dispatch({ type: "toggle_sound" })}>{playback.soundEnabled ? "Sound on" : "Sound off"}</button></div></section></div><div><section className="panel"><h2>Your answer</h2><p>Start with <strong className="featured">{featuredCombo}</strong>. Add up to 19 more hands for a range drill.</p><ActionAllocator actions={actions} value={allocationFor(featuredCombo)} onChange={(next) => setAllocationByCombo((current) => ({ ...current, [featuredCombo]: next }))} disabled={!answering || submitted} />{selected.map((combo) => <ActionAllocator key={combo} actions={actions} value={allocationFor(combo)} onChange={(next) => setAllocationByCombo((current) => ({ ...current, [combo]: next }))} disabled={!answering || submitted} />)}{answering && <button className="primary-button" type="button" disabled={submitted} onClick={() => void submit()}>Submit answer</button>}{submitError && <p className="error" role="alert">{submitError}</p>}</section><RangeGrid featuredCombo={featuredCombo} selectable={spot.selectableCombos} selected={[featuredCombo, ...selected]} blocked={blocked} onToggle={toggleCombo} /></div></div></section>;
+  const visible = visibleHistory(loadedSpot, playback);
+  const blocked = new Set(loadedSpot.decision.board);
+  function allocationFor(combo: string) { return allocationByCombo[combo] ?? equalAllocation(actionIds); }
+  function updateAllocation(combo: string, next: Record<string, number>) { setAllocationByCombo((current) => ({ ...current, [combo]: next })); }
+  function openAdd() { setEditingCombo(undefined); setModalOpen(true); }
+  function edit(combo: string) { setEditingCombo(combo); setModalOpen(true); }
+  function saveHand(combo: string, allocation: Record<string, number>) {
+    if (combo !== featured && !selected.includes(combo)) setSelected((current) => current.length >= 19 ? current : [...current, combo]);
+    updateAllocation(combo, allocation); setModalOpen(false); setEditingCombo(undefined);
+  }
+  function remove(combo: string) {
+    if (combo === featured) return;
+    setSelected((current) => current.filter((item) => item !== combo));
+    setAllocationByCombo((current) => { const next = { ...current }; delete next[combo]; return next; });
+  }
+  async function submit() {
+    if (!allSelected.every((combo) => isValidAllocation(allocationFor(combo), actionIds))) { setSubmitError("Every saved hand must total exactly 100%."); return; }
+    const payload: CreateAttemptRequest = { spotVersionId: loadedSpot.spotVersionId, hands: allSelected.map((combo) => ({ combo, allocations: allocationFor(combo) })) };
+    const serialized = JSON.stringify(payload);
+    if (pendingSubmission.current?.serialized !== serialized) pendingSubmission.current = { serialized, key: freshIdempotencyKey() };
+    setSubmitting(true); setSubmitError(undefined);
+    try {
+      const result = await api.submit(loadedSpot.spotId, payload, pendingSubmission.current!.key);
+      await Promise.all([queryClient.invalidateQueries({ queryKey: ["today"] }), queryClient.invalidateQueries({ queryKey: ["stats"] })]);
+      navigate(`/results/${encodeURIComponent(result.attemptId)}`, { state: { created: result } });
+    } catch (error) { setSubmitError(error instanceof Error ? error.message : "The answer could not be submitted."); setSubmitting(false); }
+  }
+
+  return <section className="challenge-page">
+    <header className="challenge-heading"><div><p className="eyebrow">Daily spot · {spot.presentation.positions[spot.presentation.heroActor]} · {spot.decision.street}</p><h1>Find the GTO mix</h1><p>Replay the action, then allocate exactly 100% across every legal move.</p></div><div className="featured-pill"><span>Featured hand</span><strong>{featured}</strong></div></header>
+    <PreflopPanel spot={spot} />
+    <div className="game-layout"><div className="game-column">
+      <PokerTable spot={spot} state={answering ? spot.decision : spot.initialState} />
+      <section className="history-panel" aria-labelledby="history-heading"><div className="section-heading"><div><p className="eyebrow">Replay</p><h2 id="history-heading">Action history</h2></div><span>{Math.min(playback.eventIndex, spot.history.length)}/{spot.history.length}</span></div>
+        <ol className="history">{spot.history.map((event, index) => <li className={index < visible.length ? "history-visible" : "history-future"} key={`${index}-${event.kind}`}><span>{index + 1}</span>{historyLabel(event, spot.presentation.positions)}</li>)}</ol>
+        <div className="challenge-controls">
+          {playback.phase === "introduction" && <button className="primary-button" type="button" onClick={() => dispatch({ type: "start" })}>Play hand</button>}
+          {playback.phase === "history_playback" && <button type="button" onClick={() => dispatch({ type: playback.paused ? "resume" : "pause" })}>{playback.paused ? "Resume" : "Pause"}</button>}
+          {playback.phase !== "introduction" && !answering && <button type="button" onClick={() => dispatch({ type: "next" })}>Next action</button>}
+          <button type="button" onClick={() => dispatch({ type: "replay" })}>Replay</button>
+          {!answering && <button type="button" onClick={() => dispatch({ type: "skip" })}>Skip to decision</button>}
+          <button type="button" aria-pressed={playback.soundEnabled} onClick={() => dispatch({ type: "toggle_sound" })}>{playback.soundEnabled ? "Sound on" : "Sound off"}</button>
+        </div>
+      </section>
+    </div><aside className="answer-column" aria-labelledby="answer-heading">
+      <div className="answer-header"><p className="eyebrow">Your strategy</p><h2 id="answer-heading">{featured}</h2><p>{answering ? "Enter a percentage for every legal action." : "Replay or skip the hand to unlock your answer."}</p></div>
+      <ActionAllocator actions={actions} value={allocationFor(featured)} onChange={(next) => updateAllocation(featured, next)} disabled={!answering || submitting} legend={`${featured} action percentages`} />
+      <section className="saved-hands" aria-labelledby="saved-hands-heading"><div className="section-heading"><h3 id="saved-hands-heading">Extra hands</h3><span>{allSelected.length}/20</span></div><p>Optional: test the same node with more exact combos.</p>
+        <div className="saved-hand-list">{allSelected.map((combo) => <article className="saved-hand" key={combo}><div><strong>{combo}</strong><small>{combo === featured ? "Featured · required" : isValidAllocation(allocationFor(combo), actionIds) ? "Ready" : "Needs 100%"}</small></div><div><button type="button" onClick={() => edit(combo)}>Edit</button>{combo !== featured && <button type="button" onClick={() => remove(combo)}>Remove</button>}</div></article>)}</div>
+        <button className="secondary-button full-width" type="button" onClick={openAdd} disabled={!answering || allSelected.length >= 20}>+ Add another hand</button>
+      </section>
+      {submitError && <p className="inline-error" role="alert">{submitError}</p>}
+      <button className="submit-button" type="button" disabled={!answering || submitting || !allSelected.every((combo) => isValidAllocation(allocationFor(combo), actionIds))} onClick={() => void submit()}>{submitting ? "Scoring…" : `Submit ${allSelected.length === 1 ? "answer" : `${allSelected.length} hands`}`}</button>
+      <p className="privacy-note">The GTO solution stays hidden until this submission succeeds.</p>
+    </aside></div>
+    <HandSelectionModal open={modalOpen} selectable={spot.selectableCombos} selected={allSelected} featuredCombo={featured} blockedCards={blocked} actions={actions} allocations={allocationByCombo} {...(editingCombo ? { editingCombo } : {})} onClose={() => { setModalOpen(false); setEditingCombo(undefined); }} onSave={saveHand} />
+  </section>;
 }

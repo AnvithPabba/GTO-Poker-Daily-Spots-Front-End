@@ -1,0 +1,3 @@
+export function AccountPage() {
+  return <section className="account-page panel"><p className="eyebrow">Identity</p><h1>Your account</h1><div className="account-status"><span aria-hidden="true">♙</span><div><h2>Playing as a guest</h2><p>Your opaque guest cookie keeps official attempts, progress, and statistics together in this browser. It does not expose your solver answers to other visitors.</p></div></div><aside className="context-note"><strong>Account sign-in is provider-ready, but not enabled yet.</strong><p>Guest history will remain separate unless a future migration flow asks for your explicit approval.</p></aside></section>;
+}

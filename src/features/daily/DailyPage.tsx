@@ -4,9 +4,12 @@ import { api } from "../../api/client.js";
 
 export function DailyPage() {
   const query = useQuery({ queryKey: ["today"], queryFn: api.today });
-  if (query.isLoading) return <p className="loading" role="status">Loading today’s spots…</p>;
-  if (query.isError) return <section className="panel error"><h1>Today is unavailable</h1><p>{query.error instanceof Error ? query.error.message : "Try again later."}</p><button type="button" onClick={() => void query.refetch()}>Retry</button></section>;
-  const data = query.data;
-  if (!data) return <p className="loading" role="status">No daily response.</p>;
-  return <section className="panel"><div className="page-heading"><div><p className="eyebrow">{data.publicationDate} · Pacific</p><h1>Today’s spots</h1></div>{data.isFallback && <p className="featured">Fallback from {data.fallbackFromDate}</p>}</div>{data.spots.length === 0 ? <p>No spots have been published yet.</p> : <ol className="spot-list">{data.spots.map((spot) => <li key={spot.spotVersionId}><Link to={`/challenge/${encodeURIComponent(spot.spotId)}`}><strong>Spot {spot.slotOrder} · {spot.title}</strong><br /><small>{spot.completed ? "Completed · practice again" : "Start challenge"}</small></Link></li>)}</ol>}</section>;
+  if (query.isLoading) return <p className="loading" role="status">Loading today’s game…</p>;
+  if (query.isError || !query.data) return <section className="panel error-state"><p className="eyebrow">Daily game</p><h1>Today is unavailable</h1><p>{query.error instanceof Error ? query.error.message : "Try again later."}</p><button className="secondary-button" type="button" onClick={() => void query.refetch()}>Try again</button></section>;
+  const game = query.data;
+  return <section className="daily-page"><header className="page-heading"><div><p className="eyebrow">{game.date} · Pacific</p><h1>Today’s game</h1><p>{game.progress.completedSpots} of {game.progress.totalSpots} spots complete · {game.progress.scorePoints}/{game.progress.maximumScorePoints} points</p></div><div className="progress-ring" aria-label={`${game.progress.completedSpots} of ${game.progress.totalSpots} complete`}><strong>{game.progress.completedSpots}</strong><span>/{game.progress.totalSpots}</span></div></header>
+    {game.fallback.active && <aside className="fallback-banner" role="status"><strong>Latest available game</strong><span>{game.fallback.reason}</span></aside>}
+    <ol className="daily-spot-list">{game.spots.map((spot) => <li className={spot.completed ? "spot-complete" : ""} key={spot.spotVersionId}><span className="spot-sequence">{spot.sequence}</span><div><p>{spot.street} · Hero {spot.heroPosition}</p><h2>{spot.title}</h2><small>{spot.completed ? `${spot.officialScorePoints ?? 0}/1000 official points` : "Not attempted"}</small></div><Link to={`/challenge/${encodeURIComponent(spot.spotId)}`}>{spot.completed ? "Practice" : game.progress.nextSpot?.id === spot.spotId ? "Continue" : "Play"} →</Link></li>)}</ol>
+    {game.progress.status === "completed" && <section className="completion-card"><p className="eyebrow">Daily complete</p><h2>{game.progress.scorePoints} points</h2><p>Your official answers are saved. Practice attempts will not replace them.</p><Link className="secondary-button" to="/stats">View statistics</Link></section>}
+  </section>;
 }

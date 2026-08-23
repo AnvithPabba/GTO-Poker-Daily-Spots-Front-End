@@ -1,54 +1,100 @@
 import { expect, test } from "@playwright/test";
+import { attemptFixture, dailyGameFixture, publicSpotFixture } from "../src/test/fixtures.js";
 
-const spot = {
-  schemaVersion: 2,
-  spotId: "e2e_spot_001",
-  spotVersionId: "e2e_spot_001_v1",
-  publicationDate: "2026-08-20",
-  slotOrder: 1,
-  initialState: { board: ["Qs", "Jh", "2h"], pot: 50, stacks: { ip: 100, oop: 100 }, street: "flop", actor: "oop", allIn: { ip: false, oop: false } },
-  history: [{ kind: "action", actor: "oop", actionType: "check", solverLabel: "CHECK" }],
-  decision: { board: ["Qs", "Jh", "2h"], pot: 50, stacks: { ip: 100, oop: 100 }, street: "flop", actor: "ip", allIn: { ip: false, oop: false } },
-  legalActions: [{ id: "a0", type: "check", displayLabel: "Check", isAllIn: false }, { id: "a1", type: "bet", amount: 25, displayLabel: "Bet 25", isAllIn: false }, { id: "a2", type: "fold", displayLabel: "Fold", isAllIn: false }],
-  featuredCombo: "AhAs",
-  selectableCombos: [{ combo: "AhAs", category: "pair" }, { combo: "AcAd", category: "pair" }],
-  presentation: { heroActor: "ip", dealerActor: "ip", positions: { ip: "BTN", oop: "BB" }, holdingVisibility: "featured_hero", chipUnit: "bb" },
-};
+const stats = { currentStreak: 2, bestStreak: 4, dailyGamesCompleted: 8, spotsCompleted: 11, averageScoreBasisPoints: 8_125, breakdowns: { scenarios: [], streets: [], positions: [] } };
+const history = { attempts: [{ attemptId: attemptFixture.attemptId, spotId: attemptFixture.spotId, spotVersionId: attemptFixture.spotVersionId, attemptKind: "official", score: attemptFixture.score, createdAt: attemptFixture.createdAt }] };
 
 test.beforeEach(async ({ page }) => {
-  await page.route("**/api/v1/spots/today", (route) => route.fulfill({ json: { publicationDate: spot.publicationDate, timezone: "America/Los_Angeles", isFallback: false, spots: [{ spotId: spot.spotId, spotVersionId: spot.spotVersionId, publicationDate: spot.publicationDate, slotOrder: 1, title: "E2E flop spot" }] } }));
-  await page.route(`**/api/v1/spots/${spot.spotId}`, (route) => route.fulfill({ json: spot }));
-  await page.route(`**/api/v1/spots/${spot.spotId}/attempts`, (route) => route.fulfill({ status: 201, json: { attemptId: "e2e_attempt_001", official: true, metric: { key: "l1", version: 1 }, aggregator: { key: "equal_average", version: 1 }, overallSimilarity: 100, hands: [{ combo: "AhAs", similarity: 100, gtoMajorityActionId: "a1", actions: [{ actionId: "a0", submittedBasisPoints: 0, gtoBasisPoints: 0, signedDifferenceBasisPoints: 0, absoluteDifferenceBasisPoints: 0 }, { actionId: "a1", submittedBasisPoints: 10000, gtoBasisPoints: 10000, signedDifferenceBasisPoints: 0, absoluteDifferenceBasisPoints: 0 }, { actionId: "a2", submittedBasisPoints: 0, gtoBasisPoints: 0, signedDifferenceBasisPoints: 0, absoluteDifferenceBasisPoints: 0 }] }] } }));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.route("**/api/v1/admin/status", (route) => route.fulfill({ status: 403, json: { error: { code: "FORBIDDEN", message: "forbidden", requestId: "req_admin_1" } } }));
+  await page.route("**/api/v1/daily-games/today", (route) => route.fulfill({ json: dailyGameFixture }));
+  await page.route("**/api/v1/daily-games?*", (route) => route.fulfill({ json: { from: "2026-08-01", to: "2026-08-31", games: [{ date: dailyGameFixture.date, spotCount: 1, completedSpots: 0, status: "available", officialScorePoints: 0, maximumScorePoints: 1000 }] } }));
+  await page.route(`**/api/v1/daily-games/${dailyGameFixture.date}`, (route) => route.fulfill({ json: dailyGameFixture }));
+  await page.route(`**/api/v1/spots/${publicSpotFixture.spotId}`, (route) => route.fulfill({ json: publicSpotFixture }));
+  await page.route("**/api/v1/users/me/stats", (route) => route.fulfill({ json: stats }));
+  await page.route("**/api/v1/users/me/attempts?*", (route) => route.fulfill({ json: history }));
+  await page.route(`**/api/v1/attempts/${attemptFixture.attemptId}`, (route) => route.fulfill({ json: attemptFixture }));
 });
 
-test("daily navigation opens a replayable challenge", async ({ page }) => {
-  await page.goto("/daily");
-  await expect(page.getByRole("heading", { name: "Today’s spots" })).toBeVisible();
-  await page.getByRole("link", { name: /E2E flop spot/ }).click();
-  await expect(page.getByRole("heading", { name: "What is your strategy?" })).toBeVisible();
-  await page.getByRole("button", { name: "Start replay" }).click();
-  await expect(page.getByText("OOP CHECK")).toBeVisible();
-  await page.getByRole("button", { name: "Skip to decision" }).click();
-  await expect(page.getByRole("button", { name: "Submit answer" })).toBeVisible();
+test("home and daily routes focus the visitor on the first unfinished spot", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Train the spots that shape your win rate." })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Play today/ })).toHaveAttribute("href", `/challenge/${publicSpotFixture.spotId}`);
+  await page.getByRole("link", { name: "Daily", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Today’s game" })).toBeVisible();
+  await page.getByRole("link", { name: /Continue/ }).click();
+  await expect(page.getByRole("heading", { name: "Find the GTO mix" })).toBeVisible();
 });
 
-test("playback pause, sound preference, and refresh restore are deterministic", async ({ page }) => {
-  await page.goto(`/challenge/${spot.spotId}`);
-  await page.getByRole("button", { name: "Start replay" }).click();
+test("preflop story, replay controls, and reduced-motion state remain deterministic", async ({ page }) => {
+  await page.goto(`/challenge/${publicSpotFixture.spotId}`);
+  await expect(page.getByRole("heading", { name: "BTN opens, BB calls" })).toBeVisible();
+  await page.getByRole("button", { name: "View starting-range assumptions" }).click();
+  await expect(page.getByRole("grid", { name: "BTN · IP starting range" })).toBeVisible();
+  await page.getByRole("button", { name: "Play hand" }).click();
   await page.getByRole("button", { name: "Pause" }).click();
   await expect(page.getByRole("button", { name: "Resume" })).toBeVisible();
-  await page.getByRole("button", { name: "Sound off" }).click();
-  await expect(page.getByRole("button", { name: "Sound on" })).toBeVisible();
-  await page.reload();
-  await expect(page.getByRole("button", { name: "Resume" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sound on" })).toBeVisible();
+  await page.getByRole("button", { name: "Next action" }).click();
+  await expect(page.getByText("Deal flop: Qs Jh 2h")).toHaveClass(/history-visible/);
+  await page.getByRole("button", { name: "Skip to decision" }).click();
+  await expect(page.getByRole("button", { name: "Submit answer" })).toBeEnabled();
+  await page.getByRole("button", { name: "Replay" }).click();
+  await expect(page.getByRole("button", { name: "Play hand" })).toBeVisible();
 });
 
-test("keyboard-accessible percentage answer submits without leaking before commit", async ({ page }) => {
-  await page.goto(`/challenge/${spot.spotId}`);
+test("additional-hand modal saves, edits, and removes an exact combo", async ({ page }) => {
+  await page.goto(`/challenge/${publicSpotFixture.spotId}`);
   await page.getByRole("button", { name: "Skip to decision" }).click();
-  await expect(page.getByText("Total: 100.00% ✓")).toBeVisible();
+  await page.getByRole("button", { name: "+ Add another hand" }).click();
+  await expect(page.getByRole("dialog", { name: "Add another hand" })).toBeVisible();
+  await page.getByRole("gridcell", { name: "AA" }).click();
+  await expect(page.getByRole("button", { name: /AhAs · featured/ })).toBeDisabled();
+  await page.getByRole("button", { name: "AdAs" }).click();
+  await page.getByRole("button", { name: "Save AdAs" }).click();
+  await expect(page.getByText("2/20")).toBeVisible();
+
+  const saved = page.locator(".saved-hand", { hasText: "AdAs" });
+  await saved.getByRole("button", { name: "Edit" }).click();
+  const editor = page.getByRole("dialog", { name: "Edit AdAs" });
+  await expect(editor).toBeVisible();
+  await editor.getByLabel("Check percentage").fill("10");
+  await editor.getByLabel("Bet 25 percentage").fill("90");
+  await editor.getByLabel("Bet 75 percentage").fill("0");
+  await editor.getByRole("button", { name: "Save AdAs" }).click();
+  await saved.getByRole("button", { name: "Remove" }).click();
+  await expect(page.getByText("2/20")).not.toBeVisible();
+  await expect(page.getByText("1/20")).toBeVisible();
+});
+
+test("valid submission sends an idempotency header and reveals answers only on the result route", async ({ page }) => {
+  let submittedHeader = "";
+  await page.route(`**/api/v1/spots/${publicSpotFixture.spotId}/attempts`, async (route) => {
+    submittedHeader = route.request().headers()["idempotency-key"] ?? "";
+    await route.fulfill({ status: 201, headers: { Location: `/api/v1/attempts/${attemptFixture.attemptId}` }, json: { attemptId: attemptFixture.attemptId, attemptKind: "official", score: attemptFixture.score, progress: attemptFixture.progress } });
+  });
+  await page.goto(`/challenge/${publicSpotFixture.spotId}`);
+  await page.getByRole("button", { name: "Skip to decision" }).click();
+  await expect(page.getByText(/GTO majority:/)).not.toBeVisible();
   await page.getByRole("button", { name: "Submit answer" }).click();
-  await expect(page.getByRole("heading", { name: /100.0% similarity/ })).toBeVisible();
-  await expect(page.getByText("GTO majority: a1")).toBeVisible();
+  await expect(page).toHaveURL(`/results/${attemptFixture.attemptId}`);
+  await expect(page.getByText("Official result")).toBeVisible();
+  await expect(page.getByText("GTO majority: Bet 25")).toBeVisible();
+  expect(submittedHeader.length).toBeGreaterThanOrEqual(16);
+  await page.reload();
+  await expect(page.getByText("87.50% strategy similarity")).toBeVisible();
+});
+
+test("invalid allocation disables submission and archive/stats use persisted read models", async ({ page }) => {
+  await page.goto(`/challenge/${publicSpotFixture.spotId}`);
+  await page.getByRole("button", { name: "Skip to decision" }).click();
+  await page.getByLabel("Check percentage").fill("99");
+  await expect(page.getByRole("button", { name: "Submit answer" })).toBeDisabled();
+  await expect(page.getByRole("status")).toContainText("needs 100%");
+
+  await page.goto("/stats");
+  await expect(page.getByRole("heading", { name: "Statistics" })).toBeVisible();
+  await expect(page.getByText("81.3%", { exact: true })).toBeVisible();
+  await page.goto("/archive");
+  await expect(page.getByRole("heading", { name: "Archive" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /22.*0\/1 spots.*0\/1000/ })).toBeVisible();
 });

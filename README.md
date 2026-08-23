@@ -24,11 +24,12 @@ checkout is not dependent on an uninstalled optional browser binary.
 The Vite/React shell is implemented. Run locally with
 `corepack pnpm dev` and open `http://127.0.0.1:4173`.
 
-Routes are `/`, `/daily`, `/challenge/:spotId`, `/archive`,
-`/archive/:date`, and the loopback-only `/admin`. Challenge state is
-introduction → history playback → answering → submitting → results → practice
-retry. Controls come only from API legal actions; allocations are integer
-basis points and the featured combo is always included.
+Routes are `/`, `/daily`, `/challenge/:spotId`, `/results/:attemptId`,
+`/archive`, `/archive/:date`, `/stats`, `/account`, and the loopback-only
+`/admin`. A challenge explains preflop context, replays to the decision,
+creates an attempt, then navigates to an ownership-checked refreshable result.
+Controls come only from API legal actions; allocations are integer basis
+points and the featured combo is always included.
 
 Playback is reducer-driven and persists per-spot state in browser storage so a
 refresh does not unexpectedly restart a hand. Pause/resume, replay, skip, and
@@ -60,9 +61,9 @@ private does not make a browser `localhost` endpoint reachable by users.
 
 `src/api/client.ts` is the only server communication module. Feature pages use
 TanStack Query; poker calculations live in `src/domain`; table, allocator,
-range-grid, and result components are presentational. Vitest covers reducers,
+range-modal, and result components are presentational. Vitest covers reducers,
 blockers, allocation boundaries, and dynamic action counts. Playwright uses
-deterministic intercepted v2 fixtures and avoids arbitrary sleeps.
+deterministic intercepted v3 fixtures and avoids arbitrary sleeps.
 
 ```mermaid
 flowchart TD
@@ -76,11 +77,12 @@ flowchart TD
 
 ## Contracts boundary
 
-The source currently consumes the sibling contracts package while npm release
-is approval-gated. The target public dependency is the exact published
-`@poker-trainer/contracts@0.2.0`; after release approval, replace the local
-link, regenerate this repository's lockfile, run `npm pack --dry-run`, and
-rebuild. Never publish from Docker or CI automatically.
+The source consumes the reviewed `@poker-trainer/contracts@0.3.0` tarball from
+`vendor/`, so this repository and Docker build do not depend on a sibling
+checkout. npm publication remains approval-gated. After explicit release
+approval, replace the tarball spec with exact registry version `0.3.0`,
+regenerate this repository's lockfile, and rebuild. Never publish from Docker
+or CI automatically.
 The browser receives only public challenge/action schemas; solution
 percentages are withheld until the private backend accepts a submission.
 

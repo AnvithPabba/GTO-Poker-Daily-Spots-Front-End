@@ -24,11 +24,13 @@ describe("challenge playback reducer", () => {
     expect.soft(reducePlayback(skipped, { type: "replay" }, history)).toEqual(initialPlayback());
   });
 
-  it("pauses advancement and preserves sound preference across replay", () => {
+  it("allows an explicit next action while paused and preserves sound preference across replay", () => {
     let state = reducePlayback(initialPlayback(), { type: "start" }, history);
     state = reducePlayback(state, { type: "toggle_sound" }, history);
     state = reducePlayback(state, { type: "pause" }, history);
-    expect(reducePlayback(state, { type: "next" }, history)).toEqual(state);
+    const stepped = reducePlayback(state, { type: "next" }, history);
+    expect.soft(stepped.phase).toBe("answering");
+    expect.soft(stepped.paused).toBe(true);
     state = reducePlayback(state, { type: "resume" }, history);
     expect(reducePlayback(state, { type: "replay" }, history).soundEnabled).toBe(true);
   });

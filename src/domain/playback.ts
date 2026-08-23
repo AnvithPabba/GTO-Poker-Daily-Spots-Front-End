@@ -13,7 +13,6 @@ export function reducePlayback(state: PlaybackState, action: PlaybackAction, his
   if (action.type === "toggle_sound") return { ...state, soundEnabled: !state.soundEnabled };
   if (action.type === "start") return history.length === 0 ? { ...state, phase: "answering", eventIndex: 0, complete: true, paused: false } : { ...state, phase: "history_playback", eventIndex: 1, complete: history.length === 1, paused: false };
   if (action.type === "skip") return { ...state, phase: "answering", eventIndex: history.length, complete: true, paused: false };
-  if (state.paused) return state;
   if (state.phase === "introduction") return history.length === 0 ? { ...state, phase: "answering", eventIndex: 0, complete: true } : { ...state, phase: "history_playback", eventIndex: 1, complete: history.length <= 1 };
   if (state.phase === "history_playback" && state.eventIndex < history.length) {
     const nextIndex = state.eventIndex + 1;

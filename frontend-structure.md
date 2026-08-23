@@ -1,14 +1,15 @@
 # Poker Daily Trainer: Frontend Architecture
 
-## Implemented v2 shell
+## Implemented v3 trainer
 
-The current source implements the unified public v2 boundary rather than the
-former mode-dependent payload split. `main.tsx` is the single composition root
+The current source implements the public v3 `DailyGame → Spot → Attempt →
+Attempt Result` boundary. `main.tsx` is the single composition root
 for the router and TanStack Query;
 `src/api/client.ts` validates every response with shared Zod schemas;
-`features/` contains daily, challenge, archive, and local-admin pages;
-`components/` contains the table, dynamic legal-action allocator, range grid,
-and result comparison. `src/domain/allocations.ts`, `range.ts`, and
+`features/` contains daily, challenge, results, archive, stats, account, and
+local-admin pages; `components/` contains the preflop story, table, dynamic
+legal-action allocator, modal range matrix, settings, and result comparison.
+`src/domain/allocations.ts`, `range.ts`, and
 `playback.ts` are pure, deterministic utilities covered by Vitest.
 
 ```mermaid
@@ -18,15 +19,17 @@ flowchart TD
     Challenge --> Playback[Playback reducer]
     Challenge --> Table[PokerTable]
     Challenge --> Allocator[ActionAllocator]
-    Challenge --> Range[13x13 RangeGrid]
-    Challenge --> Results[ResultsPanel]
+    Challenge --> Preflop[PreflopPanel]
+    Challenge --> Range[13x13 HandSelectionModal]
+    Challenge -->|201 + attempt ID| Results[Results route]
     Daily --> Query[TanStack Query]
     Query --> API[Validated API client]
     Table --> Cards[CardAssetProvider]
 ```
 
-Pause/resume controls, sound preference, persisted playback state, concrete
-range-cell drill-down, and archive cursor pagination are implemented. The
+Pause/resume/next/replay/skip controls, sound preference, concrete range-cell
+and exact-suit drill-down, refreshable results, calendar archive, and real
+official-attempt statistics are implemented. The
 Playwright suite runs the same deterministic journeys at desktop and a mobile
 viewport using Chromium mobile emulation, so a clean checkout only needs the
 documented Chromium browser install. A separately provisioned WebKit job may
@@ -106,9 +109,12 @@ shows a concrete need.
 | --- | --- | --- |
 | `/` | Landing | Concise product introduction and “Play today” action |
 | `/daily` | Today's ordered spots | Preserve API `slotOrder` and display fallback status |
-| `/challenge/:spotId` | Trainer | Validate, adapt, replay, answer, submit, and show results |
-| `/archive` | Archive index | Paginated Pacific-date results and completion hints |
+| `/challenge/:spotId` | Trainer | Explain preflop, replay, edit featured/extras, and create an attempt |
+| `/results/:attemptId` | Refreshable result | Ownership-checked GTO comparison, range drill-down, retry, and next spot |
+| `/archive` | Archive index | Date-range calendar with availability/completion/score |
 | `/archive/:date` | One publication date | Preserve actual Pacific date and ordered spots |
+| `/stats` | Current principal stats | Streaks, official performance, minimum-three-sample breakdowns, and history |
+| `/account` | Identity status | Explain guest/account separation without claiming guest migration |
 | `/admin` | Local control plane | Lazy-loaded and rendered only after localhost access succeeds |
 
 Unknown routes render a useful not-found page. A fallback daily response stays
@@ -123,8 +129,8 @@ loading
 → history_playback
 → answering
 → submitting
-→ results
-→ optional practiceRetry
+→ navigate to /results/:attemptId
+→ optional practice retry from the result resource
 ```
 
 | State | Responsibility and exits |
@@ -134,8 +140,8 @@ loading
 | `history_playback` | Play, pause, replay, or skip using one reducer |
 | `answering` | Edit required featured hand and optional selected concrete hands |
 | `submitting` | Freeze the submitted snapshot while the mutation is in flight |
-| `results` | Render only the accepted server response; offer replay or practice |
-| `practiceRetry` | Edit a new answer while retaining the prior result for comparison |
+| result route | Fetch the ownership-checked attempt resource and render comparisons |
+| practice retry | Return to the challenge while the official result remains immutable |
 
 The server is authoritative for official/practice status. The frontend must
 not predict that a submission will be official.
@@ -149,15 +155,16 @@ legal actions, spot responses, attempt requests, and attempt results. API card
 codes remain compact strings such as `Ah`; frontend adapters may parse them
 into presentation objects without changing the wire representation.
 
-The implemented v2 contract uses this shape:
+The implemented v3 contract uses this shape:
 
 ```ts
 type PublicSpot = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   spotId: string;
   spotVersionId: string;
   publicationDate: string;
   slotOrder: number;
+  preflop: KnownPreflopContext | UnknownPreflopContext;
   initialState: TableState;
   history: PublicHistoryEvent[];
   decision: TableState;
@@ -176,10 +183,12 @@ type SpotPresentation = {
 };
 ```
 
-The `range` holding variant is presentation-only in V1. It can show a public
-label such as “3-bet calling range”; it cannot contain reached weights,
-frequencies, or enough data to reconstruct the answer. The featured combo is
-always included in `selectableCombos`.
+Known preflop context contains semantic action chips plus sparse IP/OOP
+hand-class inclusion assumptions in basis points. These are solver input
+assumptions, not postflop reached ranges. Unknown legacy context is labeled
+honestly. Neither variant contains GTO frequencies, reach weights, EVs, or
+enough data to reconstruct the answer. The featured combo is always included
+in `selectableCombos`.
 
 ### Frontend-only models
 
@@ -662,21 +671,21 @@ web derivative. Record its provenance separately from the OpenDecks artwork.
 
 ## Ordered implementation sequence
 
-1. Keep the v2 contract and matching shared fixtures synchronized.
+1. Keep the v3 contract, preflop context, daily-game resources, and fixtures synchronized.
 2. Build route/providers, design tokens, error states, and spot adapter.
 3. Import the normalized OpenDecks cards, wire `CardAssetProvider`, and implement/test `PlayingCard` and the table.
 4. Implement the pure playback reducer, controls, history, animation, and sound.
 5. Implement the featured-hand allocator and typed submission snapshot.
 6. Add the 13x13 navigator, exact-combo drill-down, tray, and extra allocators.
-7. Integrate attempt results, official/practice retry, archive, and fallback UX.
+7. Navigate from `201 Created` to the refreshable result route; integrate official/practice retry, archive, statistics, and fallback UX.
 8. Keep the localhost admin interface behind the guarded proxy and complete
    accessibility, responsive, component, and Playwright gates before any
    separately protected operator deployment.
 
 ## Frontend completion checklist
 
-- [x] The shared contract implements the v2 featured-hand-plus-extras model.
-- [x] The route shell renders v2 public fixtures without hardcoded legal actions.
+- [x] The shared contract implements v3 preflop context, typed replay events, and the featured-hand-plus-extras model.
+- [x] The route shell renders v3 public fixtures without hardcoded legal actions.
 - [x] The table is visually dominant, hero stays at the bottom, and labels come from data.
 - [x] Public Git contains only the normalized OpenDecks CC0 card assets, license notice, and provider mapping; no temporary download URL or Downloads path is used at runtime.
 - [x] Playback, skip, and reduced motion reach the same exact decision state.
