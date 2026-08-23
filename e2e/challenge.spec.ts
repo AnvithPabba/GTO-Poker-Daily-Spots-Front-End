@@ -23,33 +23,26 @@ test("home and daily routes focus the visitor on the first unfinished spot", asy
   await page.getByRole("link", { name: "Daily", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Today’s game" })).toBeVisible();
   await page.getByRole("link", { name: /Continue/ }).click();
-  await expect(page.getByRole("heading", { name: "Your move" })).toBeVisible();
+  await expect(page.locator("h1", { hasText: "FLOP · YOU ACTION" })).toBeVisible();
 });
 
-test("preflop story, replay controls, and reduced-motion state remain deterministic", async ({ page }) => {
+test("static context, role labels, and starting ranges are immediately usable", async ({ page }) => {
   await page.goto(`/challenge/${publicSpotFixture.spotId}`);
-  await expect(page.getByRole("heading", { name: "Action history" })).toBeVisible();
-  await expect(page.getByText("BTN opens to 2.5 bb", { exact: true })).toBeVisible();
-  await expect(page.getByText("How we got here", { exact: true })).toHaveCount(0);
-  await expect(page.locator(".history-panel .eyebrow")).toHaveCount(0);
-  await page.getByRole("button", { name: "View starting-range assumptions" }).click();
-  await expect(page.getByRole("grid", { name: "BTN · IP starting range" })).toBeVisible();
-  await page.getByRole("button", { name: "Sound off" }).click();
-  await expect(page.getByRole("button", { name: "Sound on" })).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "Play", exact: true }).click();
-  await page.getByRole("button", { name: "Pause" }).click();
-  await expect(page.getByRole("button", { name: "Resume" })).toBeVisible();
-  await page.getByRole("button", { name: "Next action" }).click();
-  await expect(page.locator("li.history-visible", { hasText: "Deal flop: Qs Jh 2h" })).toBeVisible();
-  await page.getByRole("button", { name: "Skip" }).click();
+  await expect(page.getByText(/FLOP · You \(BTN\) opens to 2\.5 bb/)).toBeVisible();
+  await expect(page.getByLabel("Current hand context").getByText("You · BTN · IP to act", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Current hand context").getByText("Opponent · BB · OOP", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Submit answer" })).toBeEnabled();
-  await page.getByRole("button", { name: "Replay" }).click();
-  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Play|Skip|Replay|Sound/ })).toHaveCount(0);
+  await page.getByRole("button", { name: "View starting ranges" }).click();
+  await expect(page.getByRole("dialog", { name: "Starting ranges" })).toBeVisible();
+  await expect(page.getByRole("grid", { name: "You · BTN · IP starting range" })).toBeVisible();
+  await expect(page.getByRole("grid", { name: "Opponent · BB · OOP starting range" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Starting ranges" })).toHaveCount(0);
 });
 
 test("additional-hand modal saves, edits, and removes an exact combo", async ({ page }) => {
   await page.goto(`/challenge/${publicSpotFixture.spotId}`);
-  await page.getByRole("button", { name: "Skip" }).click();
   await page.getByRole("button", { name: "+ Add another hand" }).click();
   await expect(page.getByRole("dialog", { name: "Add another hand" })).toBeVisible();
   await page.getByRole("gridcell", { name: "AA" }).click();
@@ -63,8 +56,8 @@ test("additional-hand modal saves, edits, and removes an exact combo", async ({ 
   const editor = page.getByRole("dialog", { name: "Edit AdAs" });
   await expect(editor).toBeVisible();
   await editor.getByLabel("Check percentage").fill("10");
-  await editor.getByLabel("Bet 25 percentage").fill("90");
-  await editor.getByLabel("Bet 75 percentage").fill("0");
+  await editor.getByLabel("Bet 25 bb percentage").fill("90");
+  await editor.getByLabel("Bet 75 bb percentage").fill("0");
   await editor.getByRole("button", { name: "Save AdAs" }).click();
   await saved.getByRole("button", { name: "Remove" }).click();
   await expect(page.getByText("2/20")).not.toBeVisible();
@@ -78,7 +71,6 @@ test("valid submission sends an idempotency header and reveals answers only on t
     await route.fulfill({ status: 201, headers: { Location: `/api/v1/attempts/${attemptFixture.attemptId}` }, json: { attemptId: attemptFixture.attemptId, attemptKind: "official", score: attemptFixture.score, progress: attemptFixture.progress } });
   });
   await page.goto(`/challenge/${publicSpotFixture.spotId}`);
-  await page.getByRole("button", { name: "Skip" }).click();
   await expect(page.getByText(/GTO majority:/)).not.toBeVisible();
   await page.getByRole("button", { name: "Submit answer" }).click();
   await expect(page).toHaveURL(`/results/${attemptFixture.attemptId}`);
@@ -91,7 +83,6 @@ test("valid submission sends an idempotency header and reveals answers only on t
 
 test("invalid allocation disables submission and archive/stats use persisted read models", async ({ page }) => {
   await page.goto(`/challenge/${publicSpotFixture.spotId}`);
-  await page.getByRole("button", { name: "Skip" }).click();
   await page.getByLabel("Check percentage").fill("99");
   await expect(page.getByRole("button", { name: "Submit answer" })).toBeDisabled();
   await expect(page.getByRole("status")).toContainText("needs 100%");

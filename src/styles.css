@@ -75,3 +75,43 @@ nav { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap; } nav a, 
 .history-future > span:first-child { border: 1px solid #46556a; }
 .history-locked { font-style: italic; }
 .allocation-row { grid-template-columns: minmax(90px, 1fr) 110px; }
+.range-cell--partial { background: #6f551b; border-color: var(--gold); }
+
+/* Static challenge context and contained starting-range dialog. */
+html, body, #root { max-width: 100%; overflow-x: hidden; }
+.challenge-page, .game-column, .answer-column, .game-layout, .starting-range, .starting-ranges-modal__grid { min-width: 0; }
+.challenge-heading { margin-bottom: 1rem; }
+.challenge-heading h1 { font-size: clamp(2rem, 4vw, 3.5rem); letter-spacing: -0.04em; }
+.featured-pill { border-color: rgba(232, 190, 91, .5); background: rgba(50, 39, 20, .75); }
+.featured-pill strong, .featured-hand { color: var(--gold, #e9bf5b); }
+.hand-context { min-width: 0; margin-bottom: 1rem; padding: 1rem 1.25rem; border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(120deg, rgba(19, 31, 38, .96), rgba(22, 28, 43, .96)); }
+.hand-context__header { display:flex; justify-content:space-between; align-items:center; gap:1rem; }
+.hand-context__header h2 { margin:.1rem 0 0; font-size:1.05rem; }
+.hand-context__story { margin:.8rem 0 .7rem; color:var(--text); font-size:clamp(.95rem, 1.4vw, 1.08rem); line-height:1.5; overflow-wrap:anywhere; }
+.hand-context__meta { display:flex; flex-wrap:wrap; gap:.45rem 1rem; color:var(--muted); font-size:.82rem; }
+.hand-context__meta strong { color:var(--text); }
+.range-trigger { margin-top:.9rem; }
+.table-wrap { overflow: visible; }
+.seat-heading { display:flex; align-items:center; justify-content:center; gap:.4rem; flex-wrap:wrap; }
+.seat-heading small { display:block; flex-basis:100%; color:var(--muted); font-size:.7rem; }
+.table-meta strong { display:block; }
+.answer-column { top: 1rem; }
+.allocation-row > span:first-child { min-width:0; overflow-wrap:anywhere; }
+.starting-ranges-backdrop { align-items:stretch; padding:clamp(.5rem, 3vw, 2rem); overflow:auto; }
+.starting-range-modal { width:min(1180px, 100%); max-height:calc(100dvh - 2rem); margin:auto; overflow:auto; padding:clamp(1rem, 2vw, 1.5rem); border:1px solid var(--line); border-radius:18px; background:var(--surface); box-shadow:0 24px 80px rgba(0,0,0,.55); }
+.starting-range-modal .modal-header { position:sticky; top:0; z-index:2; background:var(--surface); }
+.starting-ranges-modal__grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:1rem; }
+.starting-range { min-width:0; padding:1rem; border:1px solid var(--line); border-radius:12px; background:rgba(9, 18, 29, .6); }
+.starting-range__heading { display:flex; justify-content:space-between; align-items:center; gap:.75rem; min-width:0; }
+.starting-range__heading h3 { margin:0; overflow-wrap:anywhere; }
+.starting-range__heading code { color:var(--gold); font-size:.75rem; }
+.starting-range p { color:var(--muted); }
+.starting-range .matrix-scroll { width:100%; min-width:0; max-width:100%; overflow-x:auto; overflow-y:hidden; overscroll-behavior:contain; }
+.starting-range .range-matrix { min-width:540px; }
+.range-legend { display:flex; flex-wrap:wrap; align-items:center; gap:.55rem; margin:.25rem 0 1rem; color:var(--muted); font-size:.8rem; }
+.legend-swatch { width:.7rem; height:.7rem; border-radius:3px; border:1px solid var(--line); }
+.legend-swatch--included { background:rgba(79, 193, 145, .48); }
+.legend-swatch--partial { background:rgba(232, 190, 91, .48); }
+.legend-swatch--empty { background:var(--surface); }
+@media (max-width:920px) { .starting-ranges-modal__grid { grid-template-columns:minmax(0, 1fr); } .answer-column { position:static; } }
+@media (max-width:680px) { .challenge-heading { align-items:flex-start; } .challenge-heading h1 { font-size:2.1rem; } .hand-context { padding:.9rem; } .hand-context__header { align-items:flex-start; } .hand-context__story { font-size:.92rem; } .hand-context__meta { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); } .starting-ranges-backdrop { padding:.35rem; } .starting-range-modal { max-height:calc(100dvh - .7rem); border-radius:12px; } }

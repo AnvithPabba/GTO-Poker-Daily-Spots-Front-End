@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { LegalAction, SelectableCombo } from "@poker-trainer/contracts";
+import type { LegalAction, PublicSpot, SelectableCombo } from "@poker-trainer/contracts";
 import { equalAllocation, isValidAllocation } from "../domain/allocations.js";
 import { enumerateCombosForCell, handClassForCombo } from "../domain/range.js";
+import { formatLegalActionLabel } from "../domain/presentation.js";
 import { ActionAllocator } from "./ActionAllocator.js";
 import { RangeMatrix } from "./RangeMatrix.js";
 
@@ -16,10 +17,11 @@ type Props = {
   editingCombo?: string;
   onClose: () => void;
   onSave: (combo: string, allocation: Record<string, number>) => void;
+  chipUnit?: PublicSpot["presentation"]["chipUnit"];
 };
 
 export function HandSelectionModal(props: Props) {
-  const { open, selectable, selected, featuredCombo, blockedCards, actions, allocations, editingCombo, onClose, onSave } = props;
+  const { open, selectable, selected, featuredCombo, blockedCards, actions, allocations, editingCombo, onClose, onSave, chipUnit = "bb" } = props;
   const dialog = useRef<HTMLDivElement>(null);
   const restoreFocus = useRef<HTMLElement | null>(null);
   const available = useMemo(() => new Set(selectable.map((item) => item.combo)), [selectable]);
@@ -68,7 +70,7 @@ export function HandSelectionModal(props: Props) {
       </div>}
       {combo && <div className="modal-stage"><button className="text-button" type="button" onClick={() => { if (!editingCombo) setCombo(undefined); }}>← {editingCombo ? "Editing saved hand" : "Choose a different hand"}</button>
         <div className="selected-combo-heading"><span className="hole-card-label">{combo.slice(0, 2)}</span><span className="hole-card-label">{combo.slice(2, 4)}</span><div><h3>{combo}</h3><p>Set a complete strategy for this exact hand.</p></div></div>
-        <ActionAllocator actions={actions} value={draft} onChange={setDraft} legend={`${combo} action percentages`} />
+        <ActionAllocator actions={actions} labelFor={(action) => formatLegalActionLabel(action, chipUnit)} value={draft} onChange={setDraft} legend={`${combo} action percentages`} />
         <button className="primary-button full-width" type="button" disabled={!isValidAllocation(draft, ids)} onClick={() => onSave(combo, draft)}>Save {combo}</button>
       </div>}
     </div>

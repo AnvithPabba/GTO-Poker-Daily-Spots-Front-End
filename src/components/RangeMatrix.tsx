@@ -1,6 +1,6 @@
 import { RANGE_RANKS, allRangeCells } from "../domain/range.js";
 
-type CellState = "available" | "selected" | "blocked" | "scored";
+type CellState = "available" | "partial" | "selected" | "blocked" | "scored";
 type Props = {
   label: string;
   stateFor: (handClass: string) => CellState;

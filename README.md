@@ -26,25 +26,25 @@ The Vite/React shell is implemented. Run locally with
 
 Routes are `/`, `/daily`, `/challenge/:spotId`, `/results/:attemptId`,
 `/archive`, `/archive/:date`, `/stats`, `/account`, and the loopback-only
-`/admin`. A challenge explains preflop context, replays to the decision,
-creates an attempt, then navigates to an ownership-checked refreshable result.
-Controls come only from API legal actions; allocations are integer basis
-points and the featured combo is always included.
+`/admin`. A challenge presents the complete static hand context, opens the
+answer editor immediately, creates an attempt, then navigates to an
+ownership-checked refreshable result. Controls come only from API legal
+actions; allocations are integer basis points and the featured combo is always
+included.
 
-The challenge has one unified `Action history` timeline. Known preflop actions
-are shown first as static context; replay-controlled public history follows in
-the same list. Its `n/m replayed` counter counts only those replay events, and
-future event details remain `Locked until replay` until the user plays or
-skips the history. The same control row provides play/pause, next action,
-replay, skip, and sound. This keeps the story complete without duplicating a
-separate “How we got here” and replay panel.
+The challenge uses one compact, data-driven context strip above the table and
+strategy panel. It identifies `You` and `Opponent` with position and lane
+(for example, `You · BB · OOP`), shows the board, pot, effective stack, current
+actor, and absolute action amounts in the API chip unit. There are no replay
+controls or locked-history messages on the active challenge route. Starting
+ranges are available from a full-screen, scroll-safe modal with independent
+13×13 matrices; the modal traps focus, closes with Escape or its backdrop, and
+restores focus to its trigger.
 
-Playback is reducer-driven and persists per-spot state in browser storage so a
-refresh does not unexpectedly restart a hand. Pause/resume, replay, skip, and
-muted-by-default sound controls are keyboard accessible. Turning sound on from
-the control unlocks short generated Web Audio cues for replayed events; if the
-browser blocks audio, the hand still works normally. CSS honors
-`prefers-reduced-motion`. Storage is optional and failures are ignored safely.
+The playback reducer and sound service remain small, tested dormant
+infrastructure for a future opt-in animation mode. They are not mounted by the
+current challenge page, so the answer is never gated behind animation. CSS
+still honors `prefers-reduced-motion` for the rest of the interface.
 
 ## Static container
 
@@ -135,7 +135,7 @@ UI code does not construct card filenames itself. It consumes the
 `OpenDecksCardAssetProvider` maps the normalized paths, and `cardAssets` is the
 injected application default. To change artwork later, add another provider
 that implements the same interface and change the provider binding; the table,
-history playback, and challenge components remain unchanged.
+static context, and challenge components remain unchanged.
 
 ### Asset credits
 

@@ -8,11 +8,12 @@ type Props = {
   onChange: (next: Record<string, number>) => void;
   disabled?: boolean;
   legend?: string;
+  labelFor?: (action: LegalAction) => string;
 };
 
 function displayValue(value: number): string { return (value / 100).toFixed(2); }
 
-export function ActionAllocator({ actions, value, onChange, disabled = false, legend = "How often does each action happen?" }: Props) {
+export function ActionAllocator({ actions, value, onChange, disabled = false, legend = "How often does each action happen?", labelFor = (action) => action.displayLabel }: Props) {
   const ids = useMemo(() => actions.map((action) => action.id), [actions]);
   const [drafts, setDrafts] = useState<Record<string, string>>(() => Object.fromEntries(ids.map((id) => [id, displayValue(value[id] ?? 0)])));
   const focused = useRef<string | undefined>(undefined);
@@ -48,10 +49,10 @@ export function ActionAllocator({ actions, value, onChange, disabled = false, le
   return <fieldset className="allocator" disabled={disabled}>
     <legend>{legend}</legend>
     {actions.map((action) => <label className="allocation-row" key={action.id}>
-      <span>{action.displayLabel}</span>
+      <span>{labelFor(action)}</span>
       <span className="percentage-input">
         <input
-          aria-label={`${action.displayLabel} percentage`}
+          aria-label={`${labelFor(action)} percentage`}
           inputMode="decimal"
           type="text"
           value={drafts[action.id] ?? ""}

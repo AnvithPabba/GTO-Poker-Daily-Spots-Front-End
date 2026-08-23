@@ -29,6 +29,6 @@ describe("HandSelectionModal", () => {
     render(<HandSelectionModal open selectable={publicSpotFixture.selectableCombos} selected={["AhAs", "AdAs"]} featuredCombo="AhAs" blockedCards={new Set()} actions={publicSpotFixture.legalActions} allocations={{ AdAs: { a0: 1000, a1: 9000, a2: 0 } }} editingCombo="AdAs" onClose={vi.fn()} onSave={vi.fn()} />);
     expect.soft(screen.getByRole("heading", { name: "Edit AdAs" })).toBeVisible();
     expect.soft(screen.getByLabelText("Check percentage")).toHaveValue("10.00");
-    expect.soft(screen.getByLabelText("Bet 25 percentage")).toHaveValue("90.00");
+    expect.soft(screen.getByLabelText("Bet 25 bb percentage")).toHaveValue("90.00");
   });
 });

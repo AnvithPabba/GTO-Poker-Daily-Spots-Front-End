@@ -16,19 +16,17 @@ legal-action allocator, modal range matrix, settings, and result comparison.
 flowchart TD
     App[App + Router] --> Daily[Daily / Archive]
     App --> Challenge[Challenge page]
-    Challenge --> Playback[Playback reducer]
+    Challenge --> Context[Static HandContext]
     Challenge --> Table[PokerTable]
     Challenge --> Allocator[ActionAllocator]
-    Challenge --> History[ActionHistory]
-    Challenge --> Range[13x13 HandSelectionModal]
+    Challenge --> Range[StartingRangesModal + HandSelectionModal]
     Challenge -->|201 + attempt ID| Results[Results route]
     Daily --> Query[TanStack Query]
     Query --> API[Validated API client]
     Table --> Cards[CardAssetProvider]
 ```
 
-Pause/resume/next/replay/skip controls, sound preference, concrete range-cell
-and exact-suit drill-down, refreshable results, calendar archive, and real
+Concrete range-cell and exact-suit drill-down, refreshable results, calendar archive, and real
 official-attempt statistics are implemented. The
 Playwright suite runs the same deterministic journeys at desktop and a mobile
 viewport using Chromium mobile emulation, so a clean checkout only needs the
@@ -43,7 +41,7 @@ deployment.
 This document defines the target Vite + React + TypeScript client for the
 daily poker trainer. The frontend is a reusable visualization and interaction
 layer for normalized poker spots; it is not a real-time poker client. It
-replays public history, presents the decision, collects strategy percentages,
+renders the complete static hand context, presents the decision, collects strategy percentages,
 and renders the server's post-submission comparison.
 
 The frontend does not parse TexasSolver output, choose solver nodes, calculate
@@ -109,7 +107,7 @@ shows a concrete need.
 | --- | --- | --- |
 | `/` | Landing | Concise product introduction and “Play today” action |
 | `/daily` | Today's ordered spots | Preserve API `slotOrder` and display fallback status |
-| `/challenge/:spotId` | Trainer | Explain preflop, replay, edit featured/extras, and create an attempt |
+| `/challenge/:spotId` | Trainer | Show static context, edit featured/extras, and create an attempt |
 | `/results/:attemptId` | Refreshable result | Ownership-checked GTO comparison, range drill-down, retry, and next spot |
 | `/archive` | Archive index | Date-range calendar with availability/completion/score |
 | `/archive/:date` | One publication date | Preserve actual Pacific date and ordered spots |
@@ -125,8 +123,6 @@ new completion for today.
 
 ```text
 loading
-→ introduction
-→ history_playback
 → answering
 → submitting
 → navigate to /results/:attemptId
@@ -136,9 +132,7 @@ loading
 | State | Responsibility and exits |
 | --- | --- |
 | `loading` | Fetch and validate; continue to introduction or an explicit error state |
-| `introduction` | Show spot context; start playback or skip to the decision |
-| `history_playback` | Play, pause, replay, or skip using one reducer |
-| `answering` | Edit required featured hand and optional selected concrete hands |
+| `answering` | The decision table and answer editor are available immediately; static context is shown above them |
 | `submitting` | Freeze the submitted snapshot while the mutation is in flight |
 | result route | Fetch the ownership-checked attempt resource and render comparisons |
 | practice retry | Return to the challenge while the official result remains immutable |
@@ -146,25 +140,29 @@ loading
 The server is authoritative for official/practice status. The frontend must
 not predict that a submission will be official.
 
-### Unified action history
+### Static challenge context
 
-`ActionHistory` is the only story/replay surface on a challenge. It keeps one
-compact container in document order:
+`HandContext` is the single story surface on a challenge. It builds one compact,
+structured sentence from the API response: street, preflop actions, any public
+postflop actions, board, pot, effective stack, and the current actor. It never
+hardcodes positions, scenario names, or bet sizes. `presentActor()` consistently
+maps the server's `heroActor` to labels such as `You · BB · OOP` and
+`Opponent · BTN · IP`; the same formatter is used by the hand context, table,
+range headings, and active-player indicator.
 
-1. known preflop actions are always visible as context;
-2. postflop `spot.history` events are revealed by the playback reducer;
-3. the decision becomes readable when the replay reaches it;
-4. one control row provides play/pause, next action, replay, skip, and sound.
+The table always renders `spot.decision`, and the answer editor is enabled as
+soon as the spot is loaded. Playback is intentionally absent from the active
+route: the old `playback.ts` reducer and `poker-sound.ts` service remain small,
+tested dormant infrastructure for a future opt-in animation mode. There is no
+replay counter, locked history, or sound control in the current challenge UI.
 
-The replay counter is deliberately formatted as `n/m replayed`, where `m` is
-the number of API history events. Static preflop rows do not increment it.
-Before an event is revealed, its row says `Locked until replay` rather than
-leaking a future card, actor, action, or decision. Dynamic action labels and
-amounts still come from the public API. The timeline uses a semantic ordered
-list, keyboard-focusable buttons, visible focus styles, and the same reduced-
-motion behavior as the table animation. The answer panel stays concise:
-`Finish the history to answer.` while locked, `Set a percentage for each move.`
-when editable, and `GTO is revealed after submission.` after submission begins.
+Starting ranges are secondary. `StartingRangesModal` opens a full-screen,
+accessible dialog with role-specific headings, independent horizontal matrix
+scroll containers, a legend, Escape/backdrop close, focus trapping/restoration,
+and body-scroll locking. The modal uses only `preflop.rangeAssumptions` from the
+validated API response. Every action allocator renders the API's ordered legal
+actions; absolute numeric amounts are formatted with the configured `bb` or
+`chips` unit, while user percentages remain a separate input.
 
 ## Public contract and frontend models
 
@@ -217,9 +215,11 @@ Keep these out of the public contracts package:
 - `CardView`: parsed rank, suit, accessible name, color, and asset URL.
 - `PokerSpotViewModel`: validated spot plus hero-bottom seat mapping and
   formatted chip/position labels.
-- `VisibleTableState`: one reducer snapshot during history playback.
+- `VisibleTableState`: a future animation-mode snapshot; the active challenge
+  renders the server-provided decision directly.
 - `ChallengePhase`: route-local state-machine phase.
-- `PlaybackState`: event index, speed, paused/skipped state, and visible table.
+- `PlaybackState`: dormant future-mode event index, speed, paused/skipped state,
+  and visible table.
 - `AnswerDraft`: featured combo plus optional concrete combos and allocations.
 - `RangeCellView`: one 13x13 class with available, blocked, and selected exact
   combinations.
@@ -239,10 +239,9 @@ flowchart TD
     Router --> Archive[Archive pages]
     Router --> Admin[Lazy local AdminPage]
     Challenge --> Trainer[PokerTrainer]
-    Trainer --> Header[SpotHeader]
+    Trainer --> Header[ChallengeHeader]
+    Trainer --> Context[HandContext]
     Trainer --> Table[PokerTable]
-    Trainer --> Playback[PlaybackControls]
-    Trainer --> History[ActionHistory]
     Trainer --> Answer[AnswerPanel]
     Trainer --> Results[ResultPanel]
     Table --> Seats[PlayerSeat x2]
@@ -252,7 +251,7 @@ flowchart TD
     Answer --> Main[MainHandEditor]
     Main --> Allocator[ActionAllocator]
     Answer --> RangeButton[Select additional hands]
-    RangeButton --> Dialog[RangeSelectorDialog]
+    RangeButton --> Dialog[StartingRangesModal]
     Dialog --> Matrix[RangeMatrix 13x13]
     Matrix --> Drill[ConcreteComboDrilldown]
     Answer --> Tray[SelectedHandTray]
@@ -272,12 +271,17 @@ flowchart TD
   not solver-tree structure.
 - `PlayingCard` accepts known card, face-down state, size, animation state,
   disabled/ghost state, and accessible label.
-- `ActionHistory` is the single semantic ordered list for the challenge. It
-  renders known preflop actions first as static context, then the public
-  `spot.history` events as replay-controlled rows. Its `n/m replayed` counter
-  counts only replay events, never the preflop context. Future events show the
-  non-leaking `Locked until replay` label; their action/card details are not
-  exposed until playback reaches them.
+- `HandContext` is the single static story surface for the active challenge. It
+  formats preflop actions, public history, board, pot, effective stack, and
+  current actor into one compact sentence. It uses the shared actor formatter
+  so `You`/`Opponent`, position, and IP/OOP never drift between the story,
+  table, range modal, and result summary.
+- `StartingRangesModal` is the secondary range surface. It owns the full-screen
+  dialog behavior, focus trap/restoration, body-scroll lock, role-specific
+  headings, legend, and independently scrollable matrices.
+- Playback controls and the historical `ActionHistory` component are not part
+  of the current route. The pure playback reducer and sound service remain
+  dormant, independently tested infrastructure for a future opt-in mode.
 - `ActionAllocator` is the single strategy editor used for the featured hand
   and every optional hand.
 - `RangeMatrix` organizes starting-hand classes; `ConcreteComboDrilldown`
@@ -308,7 +312,7 @@ sequenceDiagram
     Query->>Schema: Parse response
     Schema-->>Adapter: Validated PublicSpot
     Adapter-->>Trainer: PokerSpotViewModel
-    Trainer-->>Player: Replay then decision
+    Trainer-->>Player: Static context and immediate decision
     Player->>Form: Allocate featured hand
     opt Add up to 19 hands
         Player->>Form: Select exact combos and allocate each
@@ -329,20 +333,21 @@ explicit incompatible-data state with a request ID, not a best-effort render.
 flowchart LR
     URL[URL: spot/date] --> Page[ChallengePage]
     Query[TanStack Query: spot/result/errors] --> Page
-    Page --> Controller[Challenge reducer: phase]
-    Page --> Playback[Playback reducer: visible event state]
+    Page --> Controller[Challenge state: loading / answering / submitting]
+    Page -. dormant future mode .-> Playback[Playback reducer]
     Page --> Form[React Hook Form: combos and allocations]
     Form --> RangeUI[Local UI: dialog, focused cell, tray selection]
     Preference[Small preference context: sound] --> Page
-    Reduced[Browser reduced-motion media query] --> Playback
+    Reduced[Browser reduced-motion media query] -. future mode .-> Playback
     Controller --> Trainer[PokerTrainer rendering]
-    Playback --> Trainer
     Form --> Trainer
 ```
 
 - TanStack Query owns server data, cache status, request errors, and mutations.
-- `useReducer` owns challenge transitions; a second reducer owns deterministic
-  event playback and its visible state.
+- Challenge-local state owns loading, answering, submitting, modal, and
+  allocation transitions. A separate pure reducer owns deterministic event
+  playback only for a future opt-in mode; it is not mounted by the current
+  challenge route.
 - React Hook Form owns allocation maps and selected exact combos.
 - Dialog visibility, focused range cell, and result expansion remain local UI
   state.
@@ -363,13 +368,13 @@ Use normal document layout around a coordinate-based table interior:
 ```text
 large desktop
 ┌─────────────────────────────────────┐
-│ navigation / spot context           │
+│ navigation / static hand context    │
 ├────────────────────────┬────────────└
 │                        │ answer /   │
 │ dominant poker table   │ results    │
 │                        │ panel      │
 ├──────────────────────┴────────────┤
-│ persistent textual history          │
+│ extra hands / submit                │
 └─────────────────────────────────────┘
 ```
 
@@ -429,9 +434,11 @@ Holding behavior:
 Every card exposes text such as “ace of hearts.” Suit color is supplemental,
 not the only identifier.
 
-## Animation architecture
+## Dormant animation architecture
 
-Use CSS transforms, opacity, and keyframes driven by playback state:
+The active challenge does not require or display replay. If an optional future
+animation mode is enabled, use CSS transforms, opacity, and keyframes driven by
+the tested playback reducer:
 
 1. The reducer advances to an event.
 2. The event derives a stable animation key and destination.
@@ -447,12 +454,12 @@ pending timers. With `prefers-reduced-motion`, apply the final state
 immediately or use a minimal fade. Playback and skip must produce byte-for-byte
 equivalent final domain state.
 
-## Sound architecture
+## Dormant sound architecture
 
 Use the small `PokerSoundService` in `src/services/poker-sound.ts`, not audio
-calls scattered through table components. The challenge sound toggle enables
-the service from the user's click (required by browser autoplay policies), and
-the playback effect sends each newly revealed history event to it.
+calls scattered through table components. It is not mounted by the current
+challenge route. A future animation route may enable it from a user click
+(required by browser autoplay policies) and send newly revealed events to it.
 
 - Default to muted and persist only the preference.
 - Initialize/unlock audio after a deliberate user gesture.
@@ -460,7 +467,7 @@ the playback effect sends each newly revealed history event to it.
   ascending profile, actions a lower cue, and the decision a higher cue.
 - Trigger cues from controller transitions, never from arbitrary rerenders.
 - Treat audio as optional decoration. Missing or blocked audio cannot interrupt
-  playback, answering, submission, or accessibility announcements.
+  answering, submission, or accessibility announcements.
 - If recorded card sounds are preferred later, use a provider behind this
   boundary. Kenney's UI Audio pack is CC0, and Breviceps' “Shuffle cards” is
   also CC0; neither is required by the current generated implementation.
@@ -559,12 +566,14 @@ overall = sum(submitted hand similarities) / submitted hand count
 ## Responsive behavior
 
 - **Large desktop:** table takes roughly two-thirds of the primary row; answer
-  panel takes one-third; history remains visible below the table.
+  panel takes one-third; the static hand-context strip sits above both.
 - **Laptop:** retain table dominance but allow the answer panel to move below
   when its minimum usable width would be violated.
-- **Tablet:** use a vertical table, history, then sticky-total answer flow.
+- **Tablet:** use a vertical table followed by the answer editor, with the
+  context strip remaining above both.
 - **Mobile:** use a compact poker-stage presentation rather than squeezing the
-  desktop table. Keep opponent, board/pot, hero, and actions in clear order.
+  desktop table. Keep context, opponent, board/pot, hero, and actions in clear
+  order.
 - The 13x13 grid may scroll horizontally, but keep rank labels visible and
   provide a searchable/list alternative for keyboard and small-screen users.
 - Never hide the required total, submit status, or selected-hand count behind
@@ -577,8 +586,9 @@ overall = sum(submitted hand similarities) / submitted hand count
   dialogs, labels, and form error associations.
 - Support keyboard-only allocation and range selection with visible focus.
 - Dialogs trap focus, close predictably, and restore focus to their trigger.
-- Announce one playback event at a time and suppress announcement floods when
-  skipping.
+- The active challenge announces static context and current actor clearly;
+  dormant playback infrastructure must announce one event at a time if it is
+  enabled in a future route.
 - Respect reduced motion and never require audio.
 - Use text and symbols in addition to red/green for suits, errors, and deltas.
 - Expose each range cell's class, availability, selected concrete count, and
@@ -663,7 +673,8 @@ web derivative. Record its provenance separately from the OpenDecks artwork.
 - All 52 card-code-to-file mappings, accessible card names, and face-down state.
 - Public-spot adaptation, fixed hero seat, dynamic IP/OOP/position/dealer labels,
   and known/hidden/range holdings.
-- Playback reducer equivalence for play, pause, replay, skip, and reduced motion.
+- Dormant playback reducer equivalence for play, pause, replay, skip, and
+  reduced motion; the active challenge does not mount it.
 - Basis-point formatting, parsing, exact totals, pure-action shortcuts, and
   deterministic equalization for arbitrary legal-action counts.
 - All 169 matrix cells, all 1,326 concrete Hold'em combos, category mapping,
@@ -672,11 +683,16 @@ web derivative. Record its provenance separately from the OpenDecks artwork.
 
 ### Component tests
 
-- Table rendering from multiple fixtures without hand-specific branches.
-- Staggered dealing and identical skipped/animated final state using fake timers.
-- Keyboard, numeric, slider, reset, equalize, error, and focus behavior.
-- Range dialog/drill-down, pinned main hand, optional extras, removal, and
-  independent per-hand allocations.
+- Table rendering from multiple fixtures without hand-specific branches,
+  including consistent `You`/`Opponent` role labels.
+- Static hand-context story generation with dynamic amounts, streets, board,
+  pot, effective stack, and unknown-preflop handling.
+- Immediate strategy availability, numeric input, reset, equalize, error, and
+  focus behavior.
+- Starting-range full-screen dialog, independent matrix scrolling, Escape and
+  backdrop close, focus restoration, and range-dialog/drill-down behavior.
+- Pinned main hand, optional extras, removal, and independent per-hand
+  allocations.
 - Loading, empty, fallback, malformed response, stale version, rate limit,
   missing asset, failed submission, and expired-session behavior.
 - Sound default/muting, user-gesture activation, no duplicate transition sound,
@@ -685,8 +701,8 @@ web derivative. Record its provenance separately from the OpenDecks artwork.
 
 ### Playwright journeys
 
-1. Open today, replay or skip, submit only the featured hand, and receive an
-   official result.
+1. Open today, read the static context, submit only the featured hand, and
+   receive an official result.
 2. Add concrete combos from several cells, reach twenty total, answer each,
    submit, and verify equal-average output.
 3. Attempt a twenty-first hand and invalid totals and receive focused errors.
@@ -703,7 +719,8 @@ web derivative. Record its provenance separately from the OpenDecks artwork.
 1. Keep the v3 contract, preflop context, daily-game resources, and fixtures synchronized.
 2. Build route/providers, design tokens, error states, and spot adapter.
 3. Import the normalized OpenDecks cards, wire `CardAssetProvider`, and implement/test `PlayingCard` and the table.
-4. Implement the pure playback reducer, controls, history, animation, and sound.
+4. Keep the pure playback reducer, controls, animation, and sound tested as
+   dormant future infrastructure; do not mount it in the active challenge.
 5. Implement the featured-hand allocator and typed submission snapshot.
 6. Add the 13x13 navigator, exact-combo drill-down, tray, and extra allocators.
 7. Navigate from `201 Created` to the refreshable result route; integrate official/practice retry, archive, statistics, and fallback UX.
@@ -717,7 +734,8 @@ web derivative. Record its provenance separately from the OpenDecks artwork.
 - [x] The route shell renders v3 public fixtures without hardcoded legal actions.
 - [x] The table is visually dominant, hero stays at the bottom, and labels come from data.
 - [x] Public Git contains only the normalized OpenDecks CC0 card assets, license notice, and provider mapping; no temporary download URL or Downloads path is used at runtime.
-- [x] Playback, skip, and reduced motion reach the same exact decision state.
+- [x] The active challenge renders the decision immediately; dormant playback
+  and reduced-motion infrastructure remains independently tested.
 - [x] Actions are generated only from API `legalActions` and every hand totals `10_000` basis points.
 - [x] The featured combo is always included; zero to nineteen optional concrete combos may be added.
 - [x] Aggregate cells and unselected combos never affect validation or scoring.
