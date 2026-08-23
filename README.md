@@ -90,8 +90,12 @@ The `/admin` page is a local operator view. It reads the loopback-only queue,
 Pacific publication calendar, coverage warning, and guarded job controls; it
 does not contain solver output or answer data in the frontend bundle. In the
 Compose development stack, Nginx adds a private marker for admin proxy
-requests and the API accepts it only under the explicit non-production
-`ADMIN_TRUSTED_PROXY` setting; production retains strict loopback enforcement.
+requests only when the browser reached Nginx through `localhost`, `127.0.0.1`,
+or `::1`, and the API accepts that marker only under the explicit
+non-production `ADMIN_TRUSTED_PROXY` setting. A public hostname, including a
+Cloudflare Tunnel hostname, does not receive the marker. Keep both
+`ADMIN_ENABLED` and `ADMIN_TRUSTED_PROXY` false when this container is
+internet-reachable; production retains strict loopback enforcement.
 
 ## Visual assets and public-repository boundary
 

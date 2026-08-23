@@ -21,7 +21,13 @@ function Layout() {
 
 function isLocalBrowser(): boolean { return typeof location !== "undefined" && ["localhost", "127.0.0.1"].includes(location.hostname); }
 
-function AdminRoute() { return isLocalBrowser() ? <AdminPage /> : <NotFound />; }
+function AdminRoute() {
+  const local = isLocalBrowser();
+  const admin = useQuery({ queryKey: ["admin-access"], queryFn: api.adminStatus, enabled: local, retry: false });
+  if (!local || admin.isError || admin.data?.ok !== true) return <NotFound />;
+  if (admin.isLoading) return <section className="panel"><p>Checking local admin access…</p></section>;
+  return <AdminPage />;
+}
 
 function ChallengeRoute() { const { spotId = "" } = useParams(); return <ChallengePage key={spotId} />; }
 
