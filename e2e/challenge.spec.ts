@@ -23,14 +23,14 @@ test("home and daily routes focus the visitor on the first unfinished spot", asy
   await page.getByRole("link", { name: "Daily", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Today’s game" })).toBeVisible();
   await page.getByRole("link", { name: /Continue/ }).click();
-  await expect(page.locator("h1", { hasText: "FLOP · YOU ACTION" })).toBeVisible();
+  await expect(page.locator("h1", { hasText: "Flop · Your Decision" })).toBeVisible();
 });
 
 test("static context, role labels, and starting ranges are immediately usable", async ({ page }) => {
   await page.goto(`/challenge/${publicSpotFixture.spotId}`);
-  await expect(page.getByText(/FLOP · You \(BTN\) opens to 2\.5 bb/)).toBeVisible();
-  await expect(page.getByLabel("Current hand context").getByText("You · BTN · IP to act", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Current hand context").getByText("Opponent · BB · OOP", { exact: true })).toBeVisible();
+  await expect(page.getByText(/You open to 2\.5 bb\. BB calls\./)).toBeVisible();
+  await expect(page.getByLabel("Current hand context").getByText("BTN · IP", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Current hand context").getByText("BB · OOP", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Submit answer" })).toBeEnabled();
   await expect(page.getByRole("button", { name: /Play|Skip|Replay|Sound/ })).toHaveCount(0);
   await page.getByRole("button", { name: "View starting ranges" }).click();
@@ -46,19 +46,19 @@ test("additional-hand modal saves, edits, and removes an exact combo", async ({ 
   await page.getByRole("button", { name: "+ Add another hand" }).click();
   await expect(page.getByRole("dialog", { name: "Add another hand" })).toBeVisible();
   await page.getByRole("gridcell", { name: "AA" }).click();
-  await expect(page.getByRole("button", { name: /AhAs · featured/ })).toBeDisabled();
-  await page.getByRole("button", { name: "AdAs" }).click();
-  await page.getByRole("button", { name: "Save AdAs" }).click();
+  await expect(page.getByRole("button", { name: /A♥ A♠ · featured/ })).toBeDisabled();
+  await page.getByRole("button", { name: "A♦ A♠" }).click();
+  await page.getByRole("button", { name: "Save A♦ A♠" }).click();
   await expect(page.getByText("2/20")).toBeVisible();
 
-  const saved = page.locator(".saved-hand", { hasText: "AdAs" });
+  const saved = page.locator(".saved-hand", { hasText: "A♦ A♠" });
   await saved.getByRole("button", { name: "Edit" }).click();
-  const editor = page.getByRole("dialog", { name: "Edit AdAs" });
+  const editor = page.getByRole("dialog", { name: "Edit A♦ A♠" });
   await expect(editor).toBeVisible();
   await editor.getByLabel("Check percentage").fill("10");
   await editor.getByLabel("Bet 25 bb percentage").fill("90");
   await editor.getByLabel("Bet 75 bb percentage").fill("0");
-  await editor.getByRole("button", { name: "Save AdAs" }).click();
+  await editor.getByRole("button", { name: "Save A♦ A♠" }).click();
   await saved.getByRole("button", { name: "Remove" }).click();
   await expect(page.getByText("2/20")).not.toBeVisible();
   await expect(page.getByText("1/20")).toBeVisible();
@@ -75,7 +75,7 @@ test("valid submission sends an idempotency header and reveals answers only on t
   await page.getByRole("button", { name: "Submit answer" }).click();
   await expect(page).toHaveURL(`/results/${attemptFixture.attemptId}`);
   await expect(page.getByText("Official result")).toBeVisible();
-  await expect(page.getByText("GTO majority: Bet 25")).toBeVisible();
+  await expect(page.getByText("GTO majority: Bet 25 bb")).toBeVisible();
   expect(submittedHeader.length).toBeGreaterThanOrEqual(16);
   await page.reload();
   await expect(page.getByText("87.50% strategy similarity")).toBeVisible();

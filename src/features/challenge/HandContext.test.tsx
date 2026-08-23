@@ -7,10 +7,9 @@ describe("HandContext", () => {
   it("renders one compact, data-driven story and the immediate range trigger", () => {
     render(<HandContext spot={publicSpotFixture} />);
     expect(screen.getByRole("region", { name: "Hand context" })).toBeVisible();
-    expect(screen.getByText(/FLOP · You \(BTN\) opens to 2\.5 bb/)).toBeVisible();
-    expect(screen.getByText(/Opponent \(BB\) calls/)).toBeVisible();
-    expect(screen.getByText(/Q♠ J♥ 2♥ · Pot 50 bb · Effective 100 bb/)).toBeVisible();
-    expect(screen.getByText("You · BTN · IP", { exact: true })).toBeVisible();
+    expect(screen.getByText(/You open to 2\.5 bb\. BB calls\./)).toBeVisible();
+    expect(screen.getByText(/Flop: Q♠ J♥ 2♥\. Pot: 50 bb\. Effective stack: 100 bb/)).toBeVisible();
+    expect(screen.getByText("BTN · IP", { exact: true })).toBeVisible();
     expect(screen.getByRole("button", { name: "View starting ranges" })).toBeVisible();
   });
 

@@ -22,14 +22,14 @@ describe("ResultsPage", () => {
     expect.soft(await screen.findByText("Official result")).toBeVisible();
     expect.soft(screen.getByRole("heading", { name: /875/ })).toBeVisible();
     expect.soft(screen.getByText("87.50% strategy similarity")).toBeVisible();
-    expect.soft(await screen.findByText("GTO majority: Bet 25")).toBeVisible();
+    expect.soft(await screen.findByText("GTO majority: Bet 25 bb")).toBeVisible();
 
     // Act
     fireEvent.click(screen.getByRole("gridcell", { name: "AA, 88%" }));
 
     // Assert
     expect.soft(screen.getByRole("heading", { name: "AA" })).toBeVisible();
-    expect.soft(screen.getByText("AhAs")).toBeVisible();
+    expect.soft(screen.getByText("A♥ A♠")).toBeVisible();
     expect(screen.getByRole("link", { name: "Daily summary" })).toHaveAttribute("href", "/daily");
   });
 });

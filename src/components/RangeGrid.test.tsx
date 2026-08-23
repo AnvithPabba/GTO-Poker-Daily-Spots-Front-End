@@ -17,8 +17,8 @@ describe("RangeGrid", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /AA, 2 selectable combinations/ }));
     expect.soft(screen.getByRole("region", { name: "AA concrete combinations" })).toBeInTheDocument();
-    expect.soft(screen.getAllByRole("button", { name: "AhAs · featured" }).every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
-    fireEvent.click(screen.getByRole("button", { name: "AcAd" }));
+    expect.soft(screen.getAllByRole("button", { name: "A♥ A♠ · featured" }).every((button) => (button as HTMLButtonElement).disabled)).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "A♣ A♦" }));
     expect(onToggle).toHaveBeenCalledWith("AcAd");
   });
 });

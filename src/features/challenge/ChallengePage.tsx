@@ -7,7 +7,7 @@ import { ActionAllocator } from "../../components/ActionAllocator.js";
 import { HandSelectionModal } from "../../components/HandSelectionModal.js";
 import { PokerTable } from "../../components/PokerTable.js";
 import { equalAllocation, isValidAllocation } from "../../domain/allocations.js";
-import { decisionLabel, formatLegalActionLabel } from "../../domain/presentation.js";
+import { decisionLabel, formatHand, formatLegalActionLabel } from "../../domain/presentation.js";
 import { HandContext } from "./HandContext.js";
 
 function freshIdempotencyKey(): string {
@@ -64,15 +64,15 @@ export function ChallengePage() {
   }
 
   return <section className="challenge-page">
-    <header className="challenge-heading"><div><h1>{decisionLabel(loadedSpot)}</h1></div><div className="featured-pill"><span>Your hand</span><strong>{featured}</strong></div></header>
+    <header className="challenge-heading"><div><h1>{decisionLabel(loadedSpot)}</h1></div><div className="featured-pill"><span>Your hand</span><strong>{formatHand(featured)}</strong></div></header>
     <HandContext spot={loadedSpot} />
     <div className="game-layout"><div className="game-column">
       <PokerTable spot={loadedSpot} state={loadedSpot.decision} />
     </div><aside className="answer-column" aria-labelledby="answer-heading">
-      <div className="answer-header"><p className="eyebrow">Your strategy</p><h2 id="answer-heading">{featured}</h2><p>Set a percentage for each move.</p></div>
-      <ActionAllocator actions={actions} labelFor={(action) => formatLegalActionLabel(action, loadedSpot.presentation.chipUnit)} value={allocationFor(featured)} onChange={(next) => updateAllocation(featured, next)} disabled={submitting} legend={`${featured} action percentages`} />
+      <div className="answer-header"><p className="eyebrow">Your strategy</p><h2 id="answer-heading">{formatHand(featured)}</h2><p>How would you play this hand?</p></div>
+      <ActionAllocator actions={actions} labelFor={(action) => formatLegalActionLabel(action, loadedSpot.presentation.chipUnit)} value={allocationFor(featured)} onChange={(next) => updateAllocation(featured, next)} disabled={submitting} legend="Action frequencies" />
       <section className="saved-hands" aria-labelledby="saved-hands-heading"><div className="section-heading"><h3 id="saved-hands-heading">Extra hands</h3><span>{allSelected.length}/20</span></div><p>Optional extra hands.</p>
-        <div className="saved-hand-list">{allSelected.map((combo) => <article className="saved-hand" key={combo}><div><strong>{combo}</strong><small>{combo === featured ? "Featured · required" : isValidAllocation(allocationFor(combo), actionIds) ? "Ready" : "Needs 100%"}</small></div><div><button type="button" onClick={() => edit(combo)}>Edit</button>{combo !== featured && <button type="button" onClick={() => remove(combo)}>Remove</button>}</div></article>)}</div>
+        <div className="saved-hand-list">{allSelected.map((combo) => <article className="saved-hand" key={combo}><div><strong>{formatHand(combo)}</strong><small>{combo === featured ? "Featured · required" : isValidAllocation(allocationFor(combo), actionIds) ? "Ready" : "Needs 100%"}</small></div><div><button type="button" onClick={() => edit(combo)}>Edit</button>{combo !== featured && <button type="button" onClick={() => remove(combo)}>Remove</button>}</div></article>)}</div>
         <button className="secondary-button full-width" type="button" onClick={openAdd} disabled={allSelected.length >= 20}>+ Add another hand</button>
       </section>
       {submitError && <p className="inline-error" role="alert">{submitError}</p>}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { LegalAction, PublicSpot, SelectableCombo } from "@poker-trainer/contracts";
 import { equalAllocation, isValidAllocation } from "../domain/allocations.js";
 import { enumerateCombosForCell, handClassForCombo } from "../domain/range.js";
-import { formatLegalActionLabel } from "../domain/presentation.js";
+import { formatHand, formatLegalActionLabel } from "../domain/presentation.js";
 import { ActionAllocator } from "./ActionAllocator.js";
 import { RangeMatrix } from "./RangeMatrix.js";
 
@@ -60,18 +60,18 @@ export function HandSelectionModal(props: Props) {
 
   return <div className="modal-backdrop" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose(); }}>
     <div className="hand-modal" role="dialog" aria-modal="true" aria-labelledby="hand-modal-title" ref={dialog} onKeyDown={keyDown}>
-      <header className="modal-header"><div><p className="eyebrow">Range drill</p><h2 id="hand-modal-title">{editingCombo ? `Edit ${editingCombo}` : "Add another hand"}</h2></div><button className="icon-button" type="button" aria-label="Close hand selector" onClick={onClose}>×</button></header>
+      <header className="modal-header"><div><p className="eyebrow">Range drill</p><h2 id="hand-modal-title">{editingCombo ? `Edit ${formatHand(editingCombo)}` : "Add another hand"}</h2></div><button className="icon-button" type="button" aria-label="Close hand selector" onClick={onClose}>×</button></header>
       {!combo && <div className="modal-stage"><p><strong>1. Choose a hand class.</strong> Only hands available at this solver node are highlighted.</p>
         <RangeMatrix label="Available hand classes" stateFor={(cell) => selected.some((item) => handClassForCombo(item) === cell) ? "selected" : availableClasses.has(cell) ? "available" : "blocked"} disabledFor={(cell) => !availableClasses.has(cell)} onSelect={(cell) => setHandClass(cell)} />
         {handClass && <section className="suit-picker" aria-label={`${handClass} exact combinations`}><h3>2. Choose exact suits for {handClass}</h3><div>{combos.map((item) => {
           const alreadySelected = selected.includes(item);
-          return <button key={item} className={alreadySelected ? "selected" : ""} type="button" disabled={(alreadySelected && item !== editingCombo) || item === featuredCombo} onClick={() => chooseCombo(item)}>{item}{item === featuredCombo ? " · featured" : alreadySelected ? " · saved" : ""}</button>;
+          return <button key={item} className={alreadySelected ? "selected" : ""} type="button" disabled={(alreadySelected && item !== editingCombo) || item === featuredCombo} onClick={() => chooseCombo(item)}>{formatHand(item)}{item === featuredCombo ? " · featured" : alreadySelected ? " · saved" : ""}</button>;
         })}</div></section>}
       </div>}
       {combo && <div className="modal-stage"><button className="text-button" type="button" onClick={() => { if (!editingCombo) setCombo(undefined); }}>← {editingCombo ? "Editing saved hand" : "Choose a different hand"}</button>
-        <div className="selected-combo-heading"><span className="hole-card-label">{combo.slice(0, 2)}</span><span className="hole-card-label">{combo.slice(2, 4)}</span><div><h3>{combo}</h3><p>Set a complete strategy for this exact hand.</p></div></div>
-        <ActionAllocator actions={actions} labelFor={(action) => formatLegalActionLabel(action, chipUnit)} value={draft} onChange={setDraft} legend={`${combo} action percentages`} />
-        <button className="primary-button full-width" type="button" disabled={!isValidAllocation(draft, ids)} onClick={() => onSave(combo, draft)}>Save {combo}</button>
+        <div className="selected-combo-heading"><span className="hole-card-label">{formatHand(combo).split(" ")[0]}</span><span className="hole-card-label">{formatHand(combo).split(" ")[1]}</span><div><h3>{formatHand(combo)}</h3><p>Set a complete strategy for this exact hand.</p></div></div>
+        <ActionAllocator actions={actions} labelFor={(action) => formatLegalActionLabel(action, chipUnit)} value={draft} onChange={setDraft} legend="Action frequencies" />
+        <button className="primary-button full-width" type="button" disabled={!isValidAllocation(draft, ids)} onClick={() => onSave(combo, draft)}>Save {formatHand(combo)}</button>
       </div>}
     </div>
   </div>;

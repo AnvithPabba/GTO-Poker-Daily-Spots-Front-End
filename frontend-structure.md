@@ -143,12 +143,16 @@ not predict that a submission will be official.
 ### Static challenge context
 
 `HandContext` is the single story surface on a challenge. It builds one compact,
-structured sentence from the API response: street, preflop actions, any public
-postflop actions, board, pot, effective stack, and the current actor. It never
-hardcodes positions, scenario names, or bet sizes. `presentActor()` consistently
-maps the server's `heroActor` to labels such as `You · BB · OOP` and
-`Opponent · BTN · IP`; the same formatter is used by the hand context, table,
-range headings, and active-player indicator.
+natural-language sentence from the API response: street, preflop actions, any
+public postflop actions, board, pot, effective stack, and the current actor. It
+never hardcodes positions, scenario names, or bet sizes. The presentation layer
+(`formatHand`, `formatPosition`, `formatLegalActionLabel`, `storyLine`,
+`decisionLabel`, and `turnLabel`) translates wire notation into phrases such as
+`Flop · Your Decision`, `BTN opens to 2.5 bb. BB calls.`, `You · BB`, and
+`Out of position`. `presentActor()` consistently maps the server's `heroActor`
+to `You`/`Opponent`; if a source position is already `IP` or `OOP`, the lane is
+not duplicated. The same formatter is used by the hand context, table, range
+headings, saved-hand list, and result summaries.
 
 The table always renders `spot.decision`, and the answer editor is enabled as
 soon as the spot is loaded. Playback is intentionally absent from the active

@@ -31,7 +31,7 @@ describe("ActionAllocator", () => {
     expect(check).toHaveValue("");
     fireEvent.blur(check);
 
-    expect(check).toHaveValue("0.00");
-    expect(screen.getByRole("status")).toHaveTextContent("50.00%");
+    expect(check).toHaveValue("0");
+    expect(screen.getByRole("status")).toHaveTextContent("50%");
   });
 });

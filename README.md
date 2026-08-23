@@ -33,13 +33,16 @@ actions; allocations are integer basis points and the featured combo is always
 included.
 
 The challenge uses one compact, data-driven context strip above the table and
-strategy panel. It identifies `You` and `Opponent` with position and lane
-(for example, `You · BB · OOP`), shows the board, pot, effective stack, current
-actor, and absolute action amounts in the API chip unit. There are no replay
-controls or locked-history messages on the active challenge route. Starting
-ranges are available from a full-screen, scroll-safe modal with independent
-13×13 matrices; the modal traps focus, closes with Escape or its backdrop, and
-restores focus to its trigger.
+strategy panel. Presentation helpers translate wire notation into natural
+language: `Flop · Your Decision`, `A♥ A♠`, `You · BB`, `Out of position`, and
+`How would you play this hand?`. The story, metadata, seats, and active-player
+indicator all use the same role formatter, so a lane is never repeated (for
+example, `OOP · OOP`). Absolute action amounts remain dynamic API data and are
+shown with their configured `bb`/chip unit; percentages are separate compact
+inputs such as `20%`. There are no replay controls or locked-history messages
+on the active challenge route. Starting ranges are available from a full-screen,
+scroll-safe modal with independent 13×13 matrices; the modal traps focus,
+closes with Escape or its backdrop, and restores focus to its trigger.
 
 The playback reducer and sound service remain small, tested dormant
 infrastructure for a future opt-in animation mode. They are not mounted by the

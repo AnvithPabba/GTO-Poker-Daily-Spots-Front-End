@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { LegalAction } from "@poker-trainer/contracts";
-import { allocationTotal, BASIS_POINTS_TOTAL, equalAllocation, formatBasisPoints, isValidAllocation } from "../domain/allocations.js";
+import { allocationTotal, BASIS_POINTS_TOTAL, equalAllocation, isValidAllocation } from "../domain/allocations.js";
+import { formatPercentageBasisPoints } from "../domain/presentation.js";
 
 type Props = {
   actions: LegalAction[];
@@ -11,9 +12,9 @@ type Props = {
   labelFor?: (action: LegalAction) => string;
 };
 
-function displayValue(value: number): string { return (value / 100).toFixed(2); }
+function displayValue(value: number): string { return formatPercentageBasisPoints(value); }
 
-export function ActionAllocator({ actions, value, onChange, disabled = false, legend = "How often does each action happen?", labelFor = (action) => action.displayLabel }: Props) {
+export function ActionAllocator({ actions, value, onChange, disabled = false, legend = "Action frequencies", labelFor = (action) => action.displayLabel }: Props) {
   const ids = useMemo(() => actions.map((action) => action.id), [actions]);
   const [drafts, setDrafts] = useState<Record<string, string>>(() => Object.fromEntries(ids.map((id) => [id, displayValue(value[id] ?? 0)])));
   const focused = useRef<string | undefined>(undefined);
@@ -64,10 +65,10 @@ export function ActionAllocator({ actions, value, onChange, disabled = false, le
       </span>
     </label>)}
     <div className={`allocation-total ${total === BASIS_POINTS_TOTAL ? "is-valid" : "is-invalid"}`} role="status">
-      Total: {formatBasisPoints(total)} {total === BASIS_POINTS_TOTAL ? "✓" : "— needs 100%"}
+      Total: {formatPercentageBasisPoints(total)}% {total === BASIS_POINTS_TOTAL ? "✓" : "— needs 100%"}
     </div>
     <div className="allocator-actions">
-      <button type="button" onClick={() => replace(equalAllocation(ids))}>Equalize</button>
+      <button type="button" onClick={() => replace(equalAllocation(ids))}>Split evenly</button>
       <button type="button" onClick={() => replace(Object.fromEntries(ids.map((id) => [id, 0])))}>Reset</button>
     </div>
     {!isValidAllocation(value, ids) && <p className="form-hint">Every legal action is required and the total must be exactly 100%.</p>}

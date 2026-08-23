@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { SelectableCombo } from "@poker-trainer/contracts";
 import { allRangeCells, enumerateCombosForCell } from "../domain/range.js";
+import { formatHand } from "../domain/presentation.js";
 
 type Props = { selectable: SelectableCombo[]; selected: string[]; blocked: Set<string>; onToggle: (combo: string) => void; max?: number; featuredCombo?: string };
 
@@ -16,7 +17,7 @@ export function RangeGrid({ selectable, selected, blocked, onToggle, max = 20, f
     return <div className="range-details" role="region" aria-label={`${expandedCell} concrete combinations`}><h3>{expandedCell} hands</h3><div className="combo-options">{combos.map((combo) => {
       const isSelected = selected.includes(combo);
       const isFeatured = combo === featuredCombo;
-      return <button type="button" className={`combo-button ${isSelected ? "selected" : ""}`} key={combo} aria-pressed={isSelected} disabled={isFeatured || (!isSelected && selected.length >= max)} onClick={() => onToggle(combo)}>{combo}{isFeatured ? " · featured" : ""}</button>;
+      return <button type="button" className={`combo-button ${isSelected ? "selected" : ""}`} key={combo} aria-pressed={isSelected} disabled={isFeatured || (!isSelected && selected.length >= max)} onClick={() => onToggle(combo)}>{formatHand(combo)}{isFeatured ? " · featured" : ""}</button>;
     })}</div></div>;
-  })()}<div className="selected-tray" aria-label="Selected hands">{selected.map((combo) => <button type="button" key={combo} disabled={combo === featuredCombo} onClick={() => onToggle(combo)}>{combo}{combo === featuredCombo ? " · featured" : " ×"}</button>)}</div></section>;
+  })()}<div className="selected-tray" aria-label="Selected hands">{selected.map((combo) => <button type="button" key={combo} disabled={combo === featuredCombo} onClick={() => onToggle(combo)}>{formatHand(combo)}{combo === featuredCombo ? " · featured" : " ×"}</button>)}</div></section>;
 }

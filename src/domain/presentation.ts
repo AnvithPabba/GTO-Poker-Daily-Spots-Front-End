@@ -7,6 +7,8 @@ export type ActorPresentation = {
   role: "You" | "Opponent";
   position: string;
   lane: "IP" | "OOP";
+  seatLabel: string;
+  laneDescription: "In position" | "Out of position";
   label: string;
 };
 
@@ -14,7 +16,9 @@ export function presentActor(spot: PublicSpot, actor: Actor): ActorPresentation 
   const isHero = spot.presentation.heroActor === actor;
   const lane = actor.toUpperCase() as "IP" | "OOP";
   const position = spot.presentation.positions[actor];
-  return { actor, role: isHero ? "You" : "Opponent", position, lane, label: `${isHero ? "You" : "Opponent"} · ${position} · ${lane}` };
+  const role = isHero ? "You" : "Opponent";
+  const positionLabel = position.toUpperCase() === lane ? position : `${position} · ${lane}`;
+  return { actor, role, position, lane, seatLabel: `${role} · ${position}`, laneDescription: lane === "IP" ? "In position" : "Out of position", label: `${role} · ${positionLabel}` };
 }
 
 const SUIT_GLYPHS: Record<string, string> = { s: "♠", h: "♥", d: "♦", c: "♣" };
@@ -24,6 +28,16 @@ export function formatCardCode(card: string): string {
   const rank = card.slice(0, 1);
   const suit = card.slice(1, 2).toLowerCase();
   return `${rank}${SUIT_GLYPHS[suit] ?? suit}`;
+}
+
+export function formatHand(combo: string): string {
+  if (combo.length === 4) return `${formatCardCode(combo.slice(0, 2))} ${formatCardCode(combo.slice(2, 4))}`;
+  return combo.split(/\s+/).filter(Boolean).map(formatCardCode).join(" ");
+}
+
+export function formatPosition(spot: PublicSpot, actor: Actor): string {
+  const presented = presentActor(spot, actor);
+  return presented.position.toUpperCase() === presented.lane ? presented.position : `${presented.position} · ${presented.lane}`;
 }
 
 export function readableCard(card: string): string {
@@ -47,15 +61,20 @@ export function formatLegalActionLabel(action: LegalAction, unit: PublicSpot["pr
   if (!formatted) return action.displayLabel;
   // The API label is authoritative for the action name; only append the unit
   // to its numeric absolute amount. This keeps dynamic solver sizes intact.
-  return /\b(?:bet|raise|call|all[- ]?in)\s+[-+]?\d+(?:\.\d+)?\b/i.test(action.displayLabel)
-    ? action.displayLabel.replace(/([-+]?\d+(?:\.\d+)?)(?!.*\d)/, formatted)
-    : `${action.displayLabel} · ${formatted}`;
+  if (action.isAllIn) return `All-in · ${formatted}`;
+  const actionName = action.displayLabel;
+  return /[-+]?\d+(?:\.\d+)?/.test(actionName)
+    ? actionName.replace(/([-+]?\d+(?:\.\d+)?)(?!.*\d)/, formatted)
+    : `${actionName} · ${formatted}`;
 }
 
 function historyActionText(spot: PublicSpot, event: PublicHistoryEvent): string {
   if (event.kind === "action") {
     const actor = presentActor(spot, event.actor);
-    return `${actor.role} (${actor.position}) ${event.solverLabel.toLowerCase()}`;
+    const subject = actor.role === "You" ? "You" : actor.position;
+    const label = event.solverLabel.toLowerCase();
+    const verb = label === "check" ? "checks" : label === "call" ? "calls" : label === "fold" ? "folds" : label;
+    return `${subject} ${actor.role === "You" ? label : verb}`;
   }
   if (event.kind === "deal_board") return `${event.street} · ${event.cards.map(formatCardCode).join(" ")}`;
   if (event.kind === "deal") return `Deal ${formatCardCode(event.card)}`;
@@ -65,16 +84,41 @@ function historyActionText(spot: PublicSpot, event: PublicHistoryEvent): string 
 
 export function storyLine(spot: PublicSpot): string {
   const preflop = spot.preflop.status === "known"
-    ? spot.preflop.actions.map((action) => `${presentActor(spot, action.actor).role} (${action.position}) ${action.label.replace(`${action.position} `, "").toLowerCase()}`).join(" → ")
+    ? spot.preflop.actions.map((action) => {
+      const actor = presentActor(spot, action.actor);
+      const label = action.label.replace(new RegExp(`^${action.position}\\s*`, "i"), "");
+      if (action.type === "call") return `${actor.role === "You" ? "You call" : `${action.position} calls`}${actor.role === "You" ? ` from the ${action.position}` : ""}`;
+      if (action.type === "open" || action.type === "raise" || action.type === "three_bet" || action.type === "four_bet") {
+        const subject = actor.role === "You" ? "You" : action.position;
+        const verb = label.toLowerCase().replace(/^opens?\b/, actor.role === "You" ? "open" : "opens");
+        return `${subject} ${verb}`;
+      }
+      return `${actor.role === "You" ? "You" : action.position} ${label.toLowerCase()}`;
+    })
+      .join(". ") + "."
     : spot.preflop.label;
   const board = spot.decision.board.map(formatCardCode).join(" ");
   const actor = presentActor(spot, spot.decision.actor);
   const amount = formatAmount(spot.decision.pot, spot.presentation.chipUnit);
   const stack = formatAmount(effectiveStack(spot.decision), spot.presentation.chipUnit);
-  const postflop = spot.history.filter((event) => event.kind === "action").map((event) => historyActionText(spot, event)).join(" → ");
-  return `${spot.decision.street.toUpperCase()} · ${preflop}${postflop ? ` · ${postflop}` : ""} · ${board} · Pot ${amount ?? "—"} · Effective ${stack ?? "—"} · ${actor.label} to act`;
+  const postflop = spot.history.filter((event) => event.kind === "action").map((event) => historyActionText(spot, event)).join(". ");
+  const street = spot.decision.street.charAt(0).toUpperCase() + spot.decision.street.slice(1);
+  const pieces = [preflop.replace(/\.$/, ""), postflop, `${street}: ${board || "—"}`, `Pot: ${amount ?? "—"}`, `Effective stack: ${stack ?? "—"}`].filter(Boolean);
+  pieces.push(actor.role === "You" ? "You are first to act" : `${actor.position} acts first`);
+  return `${pieces.join(". ")}.`;
 }
 
 export function decisionLabel(spot: PublicSpot): string {
-  return `${spot.decision.street.toUpperCase()} · ${presentActor(spot, spot.decision.actor).role.toUpperCase()} ACTION`;
+  const street = spot.decision.street.charAt(0).toUpperCase() + spot.decision.street.slice(1);
+  return `${street} · ${presentActor(spot, spot.decision.actor).role === "You" ? "Your Decision" : "Opponent Decision"}`;
+}
+
+export function turnLabel(spot: PublicSpot, actor: Actor = spot.decision.actor): string {
+  const street = spot.decision.street.charAt(0).toUpperCase() + spot.decision.street.slice(1);
+  return `${street} · ${presentActor(spot, actor).role === "You" ? "Your turn" : "Opponent turn"}`;
+}
+
+export function formatPercentageBasisPoints(value: number): string {
+  const percentage = value / 100;
+  return Number.isInteger(percentage) ? String(percentage) : percentage.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
 }

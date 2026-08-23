@@ -9,7 +9,7 @@ function DateArchive({ date }: { date: string }) {
   const query = useQuery({ queryKey: ["daily-game", date], queryFn: () => api.dailyGame(date) });
   if (query.isLoading) return <p className="loading" role="status">Loading {date}…</p>;
   if (query.isError || !query.data) return <section className="panel error-state"><h1>No game for {date}</h1><p>This date has no published daily game.</p><Link to="/archive">Return to archive</Link></section>;
-  return <section><Link className="back-link" to="/archive">← Archive calendar</Link><header className="page-heading"><div><p className="eyebrow">Archive game</p><h1>{date}</h1><p>{query.data.progress.completedSpots}/{query.data.progress.totalSpots} completed</p></div></header><ol className="daily-spot-list">{query.data.spots.map((spot) => <li key={spot.spotVersionId}><span className="spot-sequence">{spot.sequence}</span><div><p>{spot.street} · {spot.heroPosition}</p><h2>{spot.title}</h2></div><Link to={`/challenge/${encodeURIComponent(spot.spotId)}`}>{spot.completed ? "Practice" : "Play"} →</Link></li>)}</ol></section>;
+  return <section><Link className="back-link" to="/archive">← Archive calendar</Link><header className="page-heading"><div><p className="eyebrow">Archive game</p><h1>{date}</h1><p>{query.data.progress.completedSpots}/{query.data.progress.totalSpots} completed</p></div></header><ol className="daily-spot-list">{query.data.spots.map((spot) => <li key={spot.spotVersionId}><span className="spot-sequence">{spot.sequence}</span><div><p>{spot.street} · You {spot.heroPosition}</p><h2>{spot.title}</h2></div><Link to={`/challenge/${encodeURIComponent(spot.spotId)}`}>{spot.completed ? "Practice" : "Play"} →</Link></li>)}</ol></section>;
 }
 
 export function ArchivePage() {
