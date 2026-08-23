@@ -18,6 +18,7 @@ describe("PreflopPanel", () => {
 
     // Assert
     expect.soft(screen.getByRole("grid", { name: "BTN · IP starting range" })).toBeVisible();
+    expect.soft(screen.getByText("2bet_ip")).toBeVisible();
     expect.soft(screen.getByRole("gridcell", { name: "AA, 100%" })).toBeDisabled();
     expect.soft(screen.getByRole("gridcell", { name: "A5s, 50%" })).toBeDisabled();
   });

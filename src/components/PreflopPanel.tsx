@@ -4,7 +4,7 @@ import { RangeMatrix } from "./RangeMatrix.js";
 
 function StartingRange({ title, range }: { title: string; range: PublicStartingRange }) {
   const weights = useMemo(() => new Map(range.cells.map((cell) => [cell.handClass, cell.inclusionBasisPoints])), [range]);
-  return <section className="starting-range"><h3>{title}</h3><p><strong>{range.label}</strong><br /><small>Highlighted cells are the assumed preflop starting range. Partial cells show their inclusion frequency.</small></p>
+  return <section className="starting-range"><h3>{title}</h3><p><strong>{range.label}</strong><br /><small>Preset: <code>{range.presetId}</code>. Highlighted cells are the assumed preflop starting range. Partial cells show their inclusion frequency.</small></p>
     <RangeMatrix
       label={`${title} starting range`}
       stateFor={(cell) => weights.has(cell) ? "available" : "blocked"}

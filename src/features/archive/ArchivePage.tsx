@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../../api/client.js";
+import { ApiError, api } from "../../api/client.js";
 
 function iso(value: Date): string { return value.toISOString().slice(0, 10); }
 
@@ -20,7 +20,8 @@ export function ArchivePage() {
   const query = useQuery({ queryKey: ["archive", iso(first), iso(last)], queryFn: () => api.dailyGames(iso(first), iso(last)), enabled: !date });
   if (date) return <DateArchive date={date} />;
   if (query.isLoading) return <p className="loading" role="status">Loading archive…</p>;
-  if (query.isError || !query.data) return <section className="panel error-state"><h1>Archive unavailable</h1><button type="button" onClick={() => void query.refetch()}>Retry</button></section>;
+  if (query.isError || !query.data) return <section className="panel error-state"><h1>Archive unavailable</h1><p>{query.error instanceof ApiError && query.error.code === "SPOT_NOT_AVAILABLE" ? "No published daily games are in the database yet. Import and publish a real Solver spot to begin the archive." : "The archive could not be loaded."}</p><button type="button" onClick={() => void query.refetch()}>Retry</button></section>;
+  if (query.data.games.length === 0) return <section className="panel empty-state"><p className="eyebrow">Archive</p><h1>No published games yet</h1><p>The archive fills as real Solver spots are imported and published. No solver files are read by this browser.</p></section>;
   const byDate = new Map(query.data.games.map((game) => [game.date, game]));
   const leading = (first.getUTCDay() + 6) % 7;
   const days = Array.from({ length: leading + last.getUTCDate() }, (_, index) => index < leading ? undefined : index - leading + 1);

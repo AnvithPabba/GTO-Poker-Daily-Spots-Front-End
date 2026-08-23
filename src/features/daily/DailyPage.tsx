@@ -1,11 +1,14 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../../api/client.js";
+import { ApiError, api } from "../../api/client.js";
 
 export function DailyPage() {
   const query = useQuery({ queryKey: ["today"], queryFn: api.today });
   if (query.isLoading) return <p className="loading" role="status">Loading today’s game…</p>;
-  if (query.isError || !query.data) return <section className="panel error-state"><p className="eyebrow">Daily game</p><h1>Today is unavailable</h1><p>{query.error instanceof Error ? query.error.message : "Try again later."}</p><button className="secondary-button" type="button" onClick={() => void query.refetch()}>Try again</button></section>;
+  if (query.isError || !query.data) {
+    const empty = query.error instanceof ApiError && query.error.code === "SPOT_NOT_AVAILABLE";
+    return <section className="panel error-state"><p className="eyebrow">Daily game</p><h1>{empty ? "No published spots yet" : "Today is unavailable"}</h1><p>{empty ? "A daily game will appear here after a real Solver spot is imported, approved, scheduled, and published." : query.error instanceof Error ? query.error.message : "Try again later."}</p>{!empty && <button className="secondary-button" type="button" onClick={() => void query.refetch()}>Try again</button>}</section>;
+  }
   const game = query.data;
   return <section className="daily-page"><header className="page-heading"><div><p className="eyebrow">{game.date} · Pacific</p><h1>Today’s game</h1><p>{game.progress.completedSpots} of {game.progress.totalSpots} spots complete · {game.progress.scorePoints}/{game.progress.maximumScorePoints} points</p></div><div className="progress-ring" aria-label={`${game.progress.completedSpots} of ${game.progress.totalSpots} complete`}><strong>{game.progress.completedSpots}</strong><span>/{game.progress.totalSpots}</span></div></header>
     {game.fallback.active && <aside className="fallback-banner" role="status"><strong>Latest available game</strong><span>{game.fallback.reason}</span></aside>}

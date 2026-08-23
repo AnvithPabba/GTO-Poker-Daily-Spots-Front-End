@@ -16,7 +16,7 @@ export const publicSpotFixture: PublicSpot = {
       { sequence: 2, actor: "oop", position: "BB", type: "call", amountBb: 2.5, label: "BB calls" },
     ],
     rangeAssumptions: {
-      ip: { presetId: "open_ip", label: "BTN opening range", cells: [{ handClass: "AA", inclusionBasisPoints: 10_000 }, { handClass: "A5s", inclusionBasisPoints: 5_000 }] },
+      ip: { presetId: "2bet_ip", label: "BTN opening range", cells: [{ handClass: "AA", inclusionBasisPoints: 10_000 }, { handClass: "A5s", inclusionBasisPoints: 5_000 }] },
       oop: { presetId: "call_oop", label: "BB calling range", cells: [{ handClass: "KQs", inclusionBasisPoints: 7_500 }] },
     },
   },
