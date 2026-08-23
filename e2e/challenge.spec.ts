@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
 
 test("home and daily routes focus the visitor on the first unfinished spot", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Train the spots that shape your win rate." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Build your strategy. Find the leak." })).toBeVisible();
   await expect(page.getByRole("link", { name: /Play today/ })).toHaveAttribute("href", `/challenge/${publicSpotFixture.spotId}`);
   await page.getByRole("link", { name: "Daily", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Today’s game" })).toBeVisible();
