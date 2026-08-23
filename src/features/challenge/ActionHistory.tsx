@@ -1,6 +1,8 @@
 import type { PublicHistoryEvent, PublicSpot } from "@poker-trainer/contracts";
+import { useEffect, useMemo, useRef } from "react";
 import { PreflopContext } from "../../components/PreflopPanel.js";
 import type { PlaybackAction, PlaybackState } from "../../domain/playback.js";
+import { createPokerSoundService } from "../../services/poker-sound.js";
 
 function historyLabel(event: PublicHistoryEvent, positions: { ip: string; oop: string }): string {
   if (event.kind === "deal") return `Deal ${event.card}`;
@@ -24,6 +26,21 @@ export function ActionHistory({ spot, playback, onPlayback }: ActionHistoryProps
   const replayedCount = Math.min(playback.eventIndex, spot.history.length);
   const preflopActions = spot.preflop.status === "known" ? spot.preflop.actions : [];
   const answering = playback.phase === "answering";
+  const soundService = useMemo(() => createPokerSoundService(), []);
+  const previousReplayedCount = useRef(replayedCount);
+
+  useEffect(() => () => soundService.dispose(), [soundService]);
+  useEffect(() => {
+    if (playback.soundEnabled && replayedCount > previousReplayedCount.current) {
+      spot.history.slice(previousReplayedCount.current, replayedCount).forEach((event) => soundService.play(event));
+    }
+    previousReplayedCount.current = replayedCount;
+  }, [playback.soundEnabled, replayedCount, soundService, spot.history]);
+
+  function toggleSound() {
+    if (!playback.soundEnabled) soundService.enable();
+    onPlayback({ type: "toggle_sound" });
+  }
 
   return <section className="history-panel" aria-labelledby="history-heading">
     <div className="section-heading">
@@ -51,7 +68,7 @@ export function ActionHistory({ spot, playback, onPlayback }: ActionHistoryProps
       {playback.phase !== "introduction" && !answering && <button type="button" onClick={() => onPlayback({ type: "next" })}>Next action</button>}
       {playback.phase !== "introduction" && <button type="button" onClick={() => onPlayback({ type: "replay" })}>Replay</button>}
       {!answering && <button type="button" onClick={() => onPlayback({ type: "skip" })}>Skip</button>}
-      <button type="button" aria-pressed={playback.soundEnabled} onClick={() => onPlayback({ type: "toggle_sound" })}>{playback.soundEnabled ? "Sound on" : "Sound off"}</button>
+      <button type="button" aria-pressed={playback.soundEnabled} onClick={toggleSound}>{playback.soundEnabled ? "Sound on" : "Sound off"}</button>
     </div>
   </section>;
 }

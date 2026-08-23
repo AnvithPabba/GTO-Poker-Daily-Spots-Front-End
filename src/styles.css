@@ -74,3 +74,4 @@ nav { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap; } nav a, 
 .history-future { color: #76869a; background: color-mix(in srgb, var(--surface-2) 38%, transparent); }
 .history-future > span:first-child { border: 1px solid #46556a; }
 .history-locked { font-style: italic; }
+.allocation-row { grid-template-columns: minmax(90px, 1fr) 110px; }

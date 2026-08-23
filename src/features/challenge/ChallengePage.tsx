@@ -74,7 +74,7 @@ export function ChallengePage() {
   }
 
   return <section className="challenge-page">
-    <header className="challenge-heading"><div><p className="eyebrow">Daily spot · {spot.presentation.positions[spot.presentation.heroActor]} · {spot.decision.street}</p><h1>Find the GTO mix</h1><p>Allocate your strategy across every legal action.</p></div><div className="featured-pill"><span>Featured hand</span><strong>{featured}</strong></div></header>
+    <header className="challenge-heading"><div><p className="eyebrow">{spot.presentation.positions[spot.decision.actor]} to act · {spot.decision.street}</p><h1>Your move</h1></div><div className="featured-pill"><span>Featured hand</span><strong>{featured}</strong></div></header>
     <div className="game-layout"><div className="game-column">
       <PokerTable spot={spot} state={answering ? spot.decision : spot.initialState} />
       <ActionHistory spot={spot} playback={playback} onPlayback={dispatch} />

@@ -23,7 +23,7 @@ test("home and daily routes focus the visitor on the first unfinished spot", asy
   await page.getByRole("link", { name: "Daily", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Today’s game" })).toBeVisible();
   await page.getByRole("link", { name: /Continue/ }).click();
-  await expect(page.getByRole("heading", { name: "Find the GTO mix" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your move" })).toBeVisible();
 });
 
 test("preflop story, replay controls, and reduced-motion state remain deterministic", async ({ page }) => {
@@ -34,6 +34,8 @@ test("preflop story, replay controls, and reduced-motion state remain determinis
   await expect(page.locator(".history-panel .eyebrow")).toHaveCount(0);
   await page.getByRole("button", { name: "View starting-range assumptions" }).click();
   await expect(page.getByRole("grid", { name: "BTN · IP starting range" })).toBeVisible();
+  await page.getByRole("button", { name: "Sound off" }).click();
+  await expect(page.getByRole("button", { name: "Sound on" })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await page.getByRole("button", { name: "Pause" }).click();
   await expect(page.getByRole("button", { name: "Resume" })).toBeVisible();

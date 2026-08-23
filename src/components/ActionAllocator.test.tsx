@@ -10,6 +10,7 @@ describe("ActionAllocator", () => {
     render(<ActionAllocator actions={[{ id: "a0", type: "check", isAllIn: false, displayLabel: "Check" }, { id: "a1", type: "bet", amount: 30, isAllIn: false, displayLabel: "Bet 30" }]} value={{ a0: 5000, a1: 5000 }} onChange={onChange} />);
     expect.soft(screen.getByLabelText("Check percentage")).toBeInTheDocument();
     expect.soft(screen.getByLabelText("Bet 30 percentage")).toBeInTheDocument();
+    expect(screen.queryByText("50.00%", { exact: true })).not.toBeInTheDocument();
     const input = screen.getByLabelText("Check percentage");
     fireEvent.change(input, { target: { value: "25" } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ a0: 2500 }));

@@ -41,7 +41,9 @@ separate “How we got here” and replay panel.
 
 Playback is reducer-driven and persists per-spot state in browser storage so a
 refresh does not unexpectedly restart a hand. Pause/resume, replay, skip, and
-muted-by-default sound preference controls are keyboard accessible; CSS honors
+muted-by-default sound controls are keyboard accessible. Turning sound on from
+the control unlocks short generated Web Audio cues for replayed events; if the
+browser blocks audio, the hand still works normally. CSS honors
 `prefers-reduced-motion`. Storage is optional and failures are ignored safely.
 
 ## Static container

@@ -48,6 +48,8 @@ describe("ActionHistory", () => {
     expect(screen.getByRole("button", { name: "Replay" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Skip" })).toBeVisible();
 
+    fireEvent.click(screen.getByRole("button", { name: "Sound off" }));
+    expect(onPlayback).toHaveBeenLastCalledWith({ type: "toggle_sound" });
     fireEvent.click(screen.getByRole("button", { name: "Skip" }));
     expect(onPlayback).toHaveBeenLastCalledWith({ type: "skip" });
   });

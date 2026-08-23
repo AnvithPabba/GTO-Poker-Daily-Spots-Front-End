@@ -61,7 +61,6 @@ export function ActionAllocator({ actions, value, onChange, disabled = false, le
         />
         <span aria-hidden="true">%</span>
       </span>
-      <span className="allocation-value">{formatBasisPoints(value[action.id] ?? 0)}</span>
     </label>)}
     <div className={`allocation-total ${total === BASIS_POINTS_TOTAL ? "is-valid" : "is-invalid"}`} role="status">
       Total: {formatBasisPoints(total)} {total === BASIS_POINTS_TOTAL ? "✓" : "— needs 100%"}

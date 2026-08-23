@@ -449,16 +449,21 @@ equivalent final domain state.
 
 ## Sound architecture
 
-Use a small `PokerSoundService` exposed through `usePokerSounds`, not audio
-calls scattered through table components.
+Use the small `PokerSoundService` in `src/services/poker-sound.ts`, not audio
+calls scattered through table components. The challenge sound toggle enables
+the service from the user's click (required by browser autoplay policies), and
+the playback effect sends each newly revealed history event to it.
 
 - Default to muted and persist only the preference.
 - Initialize/unlock audio after a deliberate user gesture.
-- Trigger `cardDealt`, `chipsMoved`, `actionSelected`, and `answerSubmitted`
-  from controller transitions, never from arbitrary rerenders.
+- Current cues are short generated Web Audio tones: card deals use a light
+  ascending profile, actions a lower cue, and the decision a higher cue.
+- Trigger cues from controller transitions, never from arbitrary rerenders.
 - Treat audio as optional decoration. Missing or blocked audio cannot interrupt
   playback, answering, submission, or accessibility announcements.
-- Keep all sound files separately licensed and out of the contracts package.
+- If recorded card sounds are preferred later, use a provider behind this
+  boundary. Kenney's UI Audio pack is CC0, and Breviceps' “Shuffle cards” is
+  also CC0; neither is required by the current generated implementation.
 
 ## Strategy editor
 
