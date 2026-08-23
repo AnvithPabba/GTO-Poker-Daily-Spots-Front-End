@@ -13,11 +13,15 @@ import { StatsPage } from "../features/stats/StatsPage.js";
 
 function Layout() {
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const local = typeof location !== "undefined" && ["localhost", "127.0.0.1"].includes(location.hostname);
+  const local = isLocalBrowser();
   const admin = useQuery({ queryKey: ["admin-access"], queryFn: api.adminStatus, enabled: local, retry: false });
   return <div className="app-shell"><header className="site-header"><Link className="brand" to="/"><span className="brand-mark">♠</span><span>Poker Daily</span></Link><nav aria-label="Primary navigation"><NavLink to="/daily">Daily</NavLink><NavLink to="/archive">Archive</NavLink><NavLink to="/stats">Stats</NavLink><button className="nav-button" type="button" onClick={() => setSettingsOpen(true)}>Settings</button><NavLink to="/account">Account</NavLink>{local && admin.isSuccess && <NavLink to="/admin">Admin</NavLink>}</nav></header>
-    <main className="content"><Routes><Route path="/" element={<LandingPage />} /><Route path="/daily" element={<DailyPage />} /><Route path="/challenge/:spotId" element={<ChallengeRoute />} /><Route path="/results/:attemptId" element={<ResultsPage />} /><Route path="/archive" element={<ArchivePage />} /><Route path="/archive/:date" element={<ArchivePage />} /><Route path="/stats" element={<StatsPage />} /><Route path="/account" element={<AccountPage />} /><Route path="/admin" element={<AdminPage />} /><Route path="*" element={<NotFound />} /></Routes></main><footer className="site-footer"><span>Daily GTO decisions, scored against solver strategy.</span><Link to="/archive">Browse archive</Link></footer><SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} /></div>;
+    <main className="content"><Routes><Route path="/" element={<LandingPage />} /><Route path="/daily" element={<DailyPage />} /><Route path="/challenge/:spotId" element={<ChallengeRoute />} /><Route path="/results/:attemptId" element={<ResultsPage />} /><Route path="/archive" element={<ArchivePage />} /><Route path="/archive/:date" element={<ArchivePage />} /><Route path="/stats" element={<StatsPage />} /><Route path="/account" element={<AccountPage />} /><Route path="/admin" element={<AdminRoute />} /><Route path="*" element={<NotFound />} /></Routes></main><footer className="site-footer"><span>Daily GTO decisions, scored against solver strategy.</span><Link to="/archive">Browse archive</Link></footer><SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} /></div>;
 }
+
+function isLocalBrowser(): boolean { return typeof location !== "undefined" && ["localhost", "127.0.0.1"].includes(location.hostname); }
+
+function AdminRoute() { return isLocalBrowser() ? <AdminPage /> : <NotFound />; }
 
 function ChallengeRoute() { const { spotId = "" } = useParams(); return <ChallengePage key={spotId} />; }
 
