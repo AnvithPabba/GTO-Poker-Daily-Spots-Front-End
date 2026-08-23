@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@poker-trainer/contracts':
-        specifier: file:vendor/poker-trainer-contracts-0.3.0.tgz
-        version: file:vendor/poker-trainer-contracts-0.3.0.tgz
+        specifier: file:vendor/poker-trainer-contracts-0.3.1.tgz
+        version: file:vendor/poker-trainer-contracts-0.3.1.tgz
       '@tanstack/react-query':
         specifier: ^5.59.20
         version: 5.101.4(react@19.2.8)
@@ -398,9 +398,9 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
-  '@poker-trainer/contracts@file:vendor/poker-trainer-contracts-0.3.0.tgz':
-    resolution: {integrity: sha512-QIJIj7L5qGqjaCaWwUxzwqhjO11wm0uPre/ylKg+T0KksRqjGbDmhp+HqpuJTKt+RAe4Mt4FSCNRpM14fzcHlg==, tarball: file:vendor/poker-trainer-contracts-0.3.0.tgz}
-    version: 0.3.0
+  '@poker-trainer/contracts@file:vendor/poker-trainer-contracts-0.3.1.tgz':
+    resolution: {integrity: sha512-u4ACMzc3RhsNR4MmEy87FZYMrK9YtobSMean9qo1z/o3Kqin25dOATSlVkkrNaI44lFOMeKwxqdlBLd/zN8zrg==, tarball: file:vendor/poker-trainer-contracts-0.3.1.tgz}
+    version: 0.3.1
 
   '@rolldown/pluginutils@1.0.0-beta.27':
     resolution: {integrity: sha512-+d0F4MKMCbeVUJwG96uQ4SgAznZNSq93I3V+9NHA4OpvqG8mRCpGdKmK8l/dl02h2CCDHwW2FqilnTyDcAnqjA==}
@@ -1745,7 +1745,7 @@ snapshots:
     dependencies:
       playwright: 1.62.1
 
-  '@poker-trainer/contracts@file:vendor/poker-trainer-contracts-0.3.0.tgz':
+  '@poker-trainer/contracts@file:vendor/poker-trainer-contracts-0.3.1.tgz':
     dependencies:
       zod: 3.25.76
 

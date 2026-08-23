@@ -90,10 +90,10 @@ flowchart TD
 
 ## Contracts boundary
 
-The source consumes the reviewed `@poker-trainer/contracts@0.3.0` tarball from
+The source consumes the reviewed `@poker-trainer/contracts@0.3.1` tarball from
 `vendor/`, so this repository and Docker build do not depend on a sibling
 checkout. npm publication remains approval-gated. After explicit release
-approval, replace the tarball spec with exact registry version `0.3.0`,
+approval, replace the tarball spec with exact registry version `0.3.1`,
 regenerate this repository's lockfile, and rebuild. Never publish from Docker
 or CI automatically.
 The browser receives only public challenge/action schemas; solution

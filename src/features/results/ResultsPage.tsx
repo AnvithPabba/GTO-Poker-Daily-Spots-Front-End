@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../../api/client.js";
+import { api, ApiError } from "../../api/client.js";
 import { RangeMatrix } from "../../components/RangeMatrix.js";
 import { formatBasisPoints } from "../../domain/allocations.js";
 import { handClassForCombo } from "../../domain/range.js";
@@ -19,7 +19,10 @@ export function ResultsPage() {
     return map;
   }, [result]);
   if (query.isLoading) return <p className="loading" role="status">Loading your result…</p>;
-  if (query.isError || !result) return <section className="panel error-state"><h1>Result unavailable</h1><p>{query.error instanceof Error ? query.error.message : "This attempt cannot be loaded."}</p><button type="button" onClick={() => void query.refetch()}>Retry</button></section>;
+  if (query.isError || !result) {
+    const invalidated = query.error instanceof ApiError && query.error.status === 410 && query.error.code === "ATTEMPT_INVALIDATED";
+    return <section className="panel error-state"><h1>{invalidated ? "Result invalidated" : "Result unavailable"}</h1><p>{invalidated ? "This result used a solver version that was replaced. It does not count toward your progress." : query.error instanceof Error ? query.error.message : "This attempt cannot be loaded."}</p>{invalidated && <Link className="primary-button" to="/daily">Play the corrected spot</Link>} {!invalidated && <button type="button" onClick={() => void query.refetch()}>Retry</button>}</section>;
+  }
   const labels = new Map(spotQuery.data?.legalActions.map((action) => [action.id, formatLegalActionLabel(action, spotQuery.data.presentation.chipUnit)]) ?? []);
   const scorePercent = result.score.similarityBasisPoints / 100;
   const selectedHands = selectedClass ? byClass.get(selectedClass) ?? [] : result.hands;

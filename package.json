@@ -17,7 +17,7 @@
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
-    "@poker-trainer/contracts": "file:vendor/poker-trainer-contracts-0.3.0.tgz",
+    "@poker-trainer/contracts": "file:vendor/poker-trainer-contracts-0.3.1.tgz",
     "@tanstack/react-query": "^5.59.20",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
