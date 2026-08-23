@@ -14,15 +14,20 @@ function StartingRange({ title, range }: { title: string; range: PublicStartingR
   </section>;
 }
 
-export function PreflopPanel({ spot }: { spot: PublicSpot }) {
+/** Compact preflop context used by the unified challenge action history. */
+export function PreflopContext({ spot }: { spot: PublicSpot }) {
   const [showRanges, setShowRanges] = useState(false);
   const context = spot.preflop;
-  return <section className="preflop-panel" aria-labelledby="preflop-heading">
-    <div className="preflop-copy"><p className="eyebrow">How we got here</p><h2 id="preflop-heading">{context.label}</h2><p>{context.summary}</p></div>
+  return <div className="preflop-context">
+    <p className="history-summary"><strong>{context.label}</strong> · {context.summary}</p>
     {context.status === "known" ? <>
-      <ol className="preflop-actions" aria-label="Preflop actions">{context.actions.map((action) => <li key={action.sequence}><span>{action.sequence}</span><strong>{action.label}</strong>{action.amountBb !== undefined && <small>{action.amountBb} bb</small>}</li>)}</ol>
       <button className="secondary-button" type="button" aria-expanded={showRanges} onClick={() => setShowRanges((value) => !value)}>{showRanges ? "Hide starting ranges" : "View starting-range assumptions"}</button>
       {showRanges && <div className="starting-ranges"><StartingRange title={`${spot.presentation.positions.ip} · IP`} range={context.rangeAssumptions.ip} /><StartingRange title={`${spot.presentation.positions.oop} · OOP`} range={context.rangeAssumptions.oop} /></div>}
-    </> : <p className="context-note">The original solve did not preserve a trustworthy preflop action sequence. No story has been guessed.</p>}
-  </section>;
+    </> : <p className="context-note">Preflop context was not preserved. No story has been guessed.</p>}
+  </div>;
+}
+
+/** Compatibility wrapper for callers that still want only the preflop panel. */
+export function PreflopPanel({ spot }: { spot: PublicSpot }) {
+  return <section className="preflop-panel" aria-labelledby="preflop-heading"><h2 id="preflop-heading" className="sr-only">Preflop context</h2><PreflopContext spot={spot} /></section>;
 }

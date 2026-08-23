@@ -19,7 +19,7 @@ flowchart TD
     Challenge --> Playback[Playback reducer]
     Challenge --> Table[PokerTable]
     Challenge --> Allocator[ActionAllocator]
-    Challenge --> Preflop[PreflopPanel]
+    Challenge --> History[ActionHistory]
     Challenge --> Range[13x13 HandSelectionModal]
     Challenge -->|201 + attempt ID| Results[Results route]
     Daily --> Query[TanStack Query]
@@ -146,6 +146,26 @@ loading
 The server is authoritative for official/practice status. The frontend must
 not predict that a submission will be official.
 
+### Unified action history
+
+`ActionHistory` is the only story/replay surface on a challenge. It keeps one
+compact container in document order:
+
+1. known preflop actions are always visible as context;
+2. postflop `spot.history` events are revealed by the playback reducer;
+3. the decision becomes readable when the replay reaches it;
+4. one control row provides play/pause, next action, replay, skip, and sound.
+
+The replay counter is deliberately formatted as `n/m replayed`, where `m` is
+the number of API history events. Static preflop rows do not increment it.
+Before an event is revealed, its row says `Locked until replay` rather than
+leaking a future card, actor, action, or decision. Dynamic action labels and
+amounts still come from the public API. The timeline uses a semantic ordered
+list, keyboard-focusable buttons, visible focus styles, and the same reduced-
+motion behavior as the table animation. The answer panel stays concise:
+`Finish the history to answer.` while locked, `Set a percentage for each move.`
+when editable, and `GTO is revealed after submission.` after submission begins.
+
 ## Public contract and frontend models
 
 ### Shared transport types
@@ -222,7 +242,7 @@ flowchart TD
     Trainer --> Header[SpotHeader]
     Trainer --> Table[PokerTable]
     Trainer --> Playback[PlaybackControls]
-    Trainer --> History[HandHistory]
+    Trainer --> History[ActionHistory]
     Trainer --> Answer[AnswerPanel]
     Trainer --> Results[ResultPanel]
     Table --> Seats[PlayerSeat x2]
@@ -252,8 +272,12 @@ flowchart TD
   not solver-tree structure.
 - `PlayingCard` accepts known card, face-down state, size, animation state,
   disabled/ghost state, and accessible label.
-- `HandHistory` is a semantic ordered list and highlights the event currently
-  represented by the animated table.
+- `ActionHistory` is the single semantic ordered list for the challenge. It
+  renders known preflop actions first as static context, then the public
+  `spot.history` events as replay-controlled rows. Its `n/m replayed` counter
+  counts only replay events, never the preflop context. Future events show the
+  non-leaking `Locked until replay` label; their action/card details are not
+  exposed until playback reaches them.
 - `ActionAllocator` is the single strategy editor used for the featured hand
   and every optional hand.
 - `RangeMatrix` organizes starting-hand classes; `ConcreteComboDrilldown`

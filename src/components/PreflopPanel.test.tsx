@@ -9,8 +9,8 @@ describe("PreflopPanel", () => {
     render(<PreflopPanel spot={publicSpotFixture} />);
 
     // Assert
-    expect.soft(screen.getByRole("heading", { name: "BTN opens, BB calls" })).toBeVisible();
-    expect.soft(screen.getByText("BTN opens to 2.5 bb")).toBeVisible();
+    expect.soft(screen.getByText("BTN opens, BB calls")).toBeVisible();
+    expect.soft(screen.getByText(/BTN opens to 2.5 bb and BB calls/)).toBeVisible();
     expect(screen.queryByRole("grid", { name: "BTN · IP starting range" })).not.toBeInTheDocument();
 
     // Act
@@ -26,7 +26,7 @@ describe("PreflopPanel", () => {
   it("labels unknown legacy context honestly instead of inventing a story", () => {
     const legacy = { ...publicSpotFixture, preflop: { status: "unknown", label: "Preflop start unavailable", summary: "Legacy context was not preserved." } as const };
     render(<PreflopPanel spot={legacy} />);
-    expect.soft(screen.getByRole("heading", { name: "Preflop start unavailable" })).toBeVisible();
+    expect.soft(screen.getByText(/Preflop start unavailable/)).toBeVisible();
     expect.soft(screen.getByText(/No story has been guessed/)).toBeVisible();
     expect(screen.queryByRole("button", { name: /starting-range/ })).not.toBeInTheDocument();
   });

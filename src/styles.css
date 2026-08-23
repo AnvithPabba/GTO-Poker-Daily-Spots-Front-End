@@ -58,3 +58,19 @@ nav { display: flex; align-items: center; gap: .3rem; flex-wrap: wrap; } nav a, 
 @media (max-width: 680px) { .site-header nav { overflow: visible; flex-wrap: wrap; }.site-header nav a, .nav-button { padding: .42rem .52rem; font-size: .86rem; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
 :root[data-reduce-motion="true"] *, :root[data-reduce-motion="true"] *::before, :root[data-reduce-motion="true"] *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+
+/* Unified challenge history. These overrides keep the legacy preflop styles
+   harmless for compatibility callers while the challenge uses one timeline. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.history-panel > .section-heading { margin-bottom: .8rem; }
+.preflop-context { display: grid; gap: .9rem; }
+.history-summary { color: #bac7d6; margin: 0; }
+.history-summary strong { color: var(--text); }
+.context-note { margin: 0; }
+.history-context { grid-template-columns: 30px minmax(0, 1fr) auto !important; color: var(--text); background: #0d1a28; }
+.history-context > span:first-child { background: #31506a; color: #e3edf6; }
+.history-context small { color: var(--muted); }
+.history-visible > span:first-child { background: var(--accent); color: #07120d; }
+.history-future { color: #76869a; background: color-mix(in srgb, var(--surface-2) 38%, transparent); }
+.history-future > span:first-child { border: 1px solid #46556a; }
+.history-locked { font-style: italic; }

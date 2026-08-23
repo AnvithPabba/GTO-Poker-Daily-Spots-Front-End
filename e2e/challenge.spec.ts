@@ -28,23 +28,26 @@ test("home and daily routes focus the visitor on the first unfinished spot", asy
 
 test("preflop story, replay controls, and reduced-motion state remain deterministic", async ({ page }) => {
   await page.goto(`/challenge/${publicSpotFixture.spotId}`);
-  await expect(page.getByRole("heading", { name: "BTN opens, BB calls" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Action history" })).toBeVisible();
+  await expect(page.getByText("BTN opens to 2.5 bb", { exact: true })).toBeVisible();
+  await expect(page.getByText("How we got here", { exact: true })).toHaveCount(0);
+  await expect(page.locator(".history-panel .eyebrow")).toHaveCount(0);
   await page.getByRole("button", { name: "View starting-range assumptions" }).click();
   await expect(page.getByRole("grid", { name: "BTN · IP starting range" })).toBeVisible();
-  await page.getByRole("button", { name: "Play hand" }).click();
+  await page.getByRole("button", { name: "Play", exact: true }).click();
   await page.getByRole("button", { name: "Pause" }).click();
   await expect(page.getByRole("button", { name: "Resume" })).toBeVisible();
   await page.getByRole("button", { name: "Next action" }).click();
-  await expect(page.getByText("Deal flop: Qs Jh 2h")).toHaveClass(/history-visible/);
-  await page.getByRole("button", { name: "Skip to decision" }).click();
+  await expect(page.locator("li.history-visible", { hasText: "Deal flop: Qs Jh 2h" })).toBeVisible();
+  await page.getByRole("button", { name: "Skip" }).click();
   await expect(page.getByRole("button", { name: "Submit answer" })).toBeEnabled();
   await page.getByRole("button", { name: "Replay" }).click();
-  await expect(page.getByRole("button", { name: "Play hand" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
 });
 
 test("additional-hand modal saves, edits, and removes an exact combo", async ({ page }) => {
   await page.goto(`/challenge/${publicSpotFixture.spotId}`);
-  await page.getByRole("button", { name: "Skip to decision" }).click();
+  await page.getByRole("button", { name: "Skip" }).click();
   await page.getByRole("button", { name: "+ Add another hand" }).click();
   await expect(page.getByRole("dialog", { name: "Add another hand" })).toBeVisible();
   await page.getByRole("gridcell", { name: "AA" }).click();
@@ -73,7 +76,7 @@ test("valid submission sends an idempotency header and reveals answers only on t
     await route.fulfill({ status: 201, headers: { Location: `/api/v1/attempts/${attemptFixture.attemptId}` }, json: { attemptId: attemptFixture.attemptId, attemptKind: "official", score: attemptFixture.score, progress: attemptFixture.progress } });
   });
   await page.goto(`/challenge/${publicSpotFixture.spotId}`);
-  await page.getByRole("button", { name: "Skip to decision" }).click();
+  await page.getByRole("button", { name: "Skip" }).click();
   await expect(page.getByText(/GTO majority:/)).not.toBeVisible();
   await page.getByRole("button", { name: "Submit answer" }).click();
   await expect(page).toHaveURL(`/results/${attemptFixture.attemptId}`);
@@ -86,7 +89,7 @@ test("valid submission sends an idempotency header and reveals answers only on t
 
 test("invalid allocation disables submission and archive/stats use persisted read models", async ({ page }) => {
   await page.goto(`/challenge/${publicSpotFixture.spotId}`);
-  await page.getByRole("button", { name: "Skip to decision" }).click();
+  await page.getByRole("button", { name: "Skip" }).click();
   await page.getByLabel("Check percentage").fill("99");
   await expect(page.getByRole("button", { name: "Submit answer" })).toBeDisabled();
   await expect(page.getByRole("status")).toContainText("needs 100%");

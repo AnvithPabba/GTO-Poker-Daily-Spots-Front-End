@@ -31,6 +31,14 @@ creates an attempt, then navigates to an ownership-checked refreshable result.
 Controls come only from API legal actions; allocations are integer basis
 points and the featured combo is always included.
 
+The challenge has one unified `Action history` timeline. Known preflop actions
+are shown first as static context; replay-controlled public history follows in
+the same list. Its `n/m replayed` counter counts only those replay events, and
+future event details remain `Locked until replay` until the user plays or
+skips the history. The same control row provides play/pause, next action,
+replay, skip, and sound. This keeps the story complete without duplicating a
+separate “How we got here” and replay panel.
+
 Playback is reducer-driven and persists per-spot state in browser storage so a
 refresh does not unexpectedly restart a hand. Pause/resume, replay, skip, and
 muted-by-default sound preference controls are keyboard accessible; CSS honors

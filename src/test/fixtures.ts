@@ -10,7 +10,7 @@ export const publicSpotFixture: PublicSpot = {
     status: "known",
     scenarioId: "2bet_call",
     label: "BTN opens, BB calls",
-    summary: "A single-raised pot with BTN in position against the BB caller.",
+    summary: "BTN opens to 2.5 bb and BB calls.",
     actions: [
       { sequence: 1, actor: "ip", position: "BTN", type: "open", amountBb: 2.5, label: "BTN opens to 2.5 bb" },
       { sequence: 2, actor: "oop", position: "BB", type: "call", amountBb: 2.5, label: "BB calls" },
