@@ -39,5 +39,7 @@ describe("presentation helpers", () => {
     expect(storyLine(publicSpotFixture)).toContain("2.5 bb");
     expect(storyLine(publicSpotFixture)).toContain("Q♠ J♥ 2♥");
     expect(storyLine(publicSpotFixture)).toBe("You open to 2.5 bb. BB calls. BB checks. Flop: Q♠ J♥ 2♥. Pot: 50 bb. Effective stack: 100 bb. You are first to act.");
+    const heroOop = { ...publicSpotFixture, presentation: { ...publicSpotFixture.presentation, heroActor: "oop" as const }, decision: { ...publicSpotFixture.decision, actor: "oop" as const } };
+    expect(storyLine(heroOop)).toContain("BTN opens to 2.5 bb. You call from the BB");
   });
 });

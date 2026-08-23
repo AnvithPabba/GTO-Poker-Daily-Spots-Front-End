@@ -72,9 +72,12 @@ function historyActionText(spot: PublicSpot, event: PublicHistoryEvent): string 
   if (event.kind === "action") {
     const actor = presentActor(spot, event.actor);
     const subject = actor.role === "You" ? "You" : actor.position;
-    const label = event.solverLabel.toLowerCase();
-    const verb = label === "check" ? "checks" : label === "call" ? "calls" : label === "fold" ? "folds" : label;
-    return `${subject} ${actor.role === "You" ? label : verb}`;
+    const amount = formatAmount(event.toAmount ?? event.amount, spot.presentation.chipUnit);
+    if (event.actionType === "check") return `${subject} checks`;
+    if (event.actionType === "call") return `${subject} calls${amount ? ` ${amount}` : ""}`;
+    if (event.actionType === "bet") return `${subject} bets${amount ? ` ${amount}` : ""}`;
+    if (event.actionType === "raise") return `${subject} raises${amount ? ` to ${amount}` : ""}`;
+    return `${subject} folds`;
   }
   if (event.kind === "deal_board") return `${event.street} · ${event.cards.map(formatCardCode).join(" ")}`;
   if (event.kind === "deal") return `Deal ${formatCardCode(event.card)}`;
