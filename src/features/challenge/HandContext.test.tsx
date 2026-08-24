@@ -7,7 +7,11 @@ describe("HandContext", () => {
   it("renders one compact, data-driven story and the immediate range trigger", () => {
     render(<HandContext spot={heroOopSpotFixture} />);
     expect(screen.getByRole("region", { name: "Hand context" })).toBeVisible();
-    expect(screen.getByText("Opponent (BTN) opens to 2.5 bb. You call from BB. Flop Q♠ J♥ 2♥. Pot 50 bb · Effective stack 100 bb. You are first to act.", { exact: true })).toBeVisible();
+    expect.soft(screen.getByText("Opponent (BTN) opens to 2.5 bb → You call from BB", { exact: true })).toBeVisible();
+    expect.soft(screen.getByText("Q♠ J♥ 2♥", { exact: true })).toBeVisible();
+    expect.soft(screen.getByText("50 bb", { exact: true })).toBeVisible();
+    expect.soft(screen.getByText("100 bb", { exact: true })).toBeVisible();
+    expect.soft(screen.getByText("You act first", { exact: true })).toBeVisible();
     expect(screen.getByRole("button", { name: "View starting ranges" })).toBeVisible();
   });
 

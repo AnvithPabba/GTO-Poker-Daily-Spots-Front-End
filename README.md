@@ -33,9 +33,12 @@ actions; allocations are integer basis points and the featured combo is always
 included.
 
 The challenge uses one compact, data-driven context strip above the table and
-strategy panel. Presentation helpers translate wire notation into natural
-language: `Flop · Your Decision`, `A♥ A♠`, `You · BB · OOP`, and
-`Opponent · BTN · IP`. One shared player resolver derives role, poker position,
+strategy panel. It separates the hand into scan-friendly fields: `Hand so far`,
+street/board, pot, effective stack, and decision. For example, the action line
+renders `Opponent (BTN) opens to 2.5 bb → You call from BB`, while `You act
+first` is highlighted separately. Presentation helpers translate wire notation
+into natural language such as `A♥ A♠`, `You · BB · OOP`, and `Opponent · BTN ·
+IP`. One shared player resolver derives role, poker position,
 IP/OOP lane, postflop order, and dealer ownership. The `D` badge belongs to the
 player whose resolved position is `BTN`; it is never attached to hero or a
 screen coordinate. Structured preflop-action positions also let the client

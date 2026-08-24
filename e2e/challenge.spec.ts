@@ -28,7 +28,7 @@ test("home and daily routes focus the visitor on the first unfinished spot", asy
 
 test("static context, role labels, and starting ranges are immediately usable", async ({ page }) => {
   await page.goto(`/challenge/${publicSpotFixture.spotId}`);
-  await expect(page.getByText("You open to 2.5 bb. Opponent (BB) calls. Opponent (BB) checks. Flop Q♠ J♥ 2♥. Pot 50 bb · Effective stack 100 bb. Action is on you.", { exact: true })).toBeVisible();
+  await expect(page.getByText("You open to 2.5 bb → Opponent (BB) calls → Opponent (BB) checks", { exact: true })).toBeVisible();
   await expect(page.getByRole("group", { name: "You · BTN · IP, dealer" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Opponent · BB · OOP" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Submit answer" })).toBeEnabled();
@@ -46,7 +46,8 @@ test("BTN owns the dealer button while hero BB/OOP acts first", async ({ page })
   await page.route(`**/api/v1/spots/${heroOopSpotFixture.spotId}`, (route) => route.fulfill({ json: heroOopSpotFixture }));
   await page.goto(`/challenge/${heroOopSpotFixture.spotId}`);
 
-  await expect(page.getByText("Opponent (BTN) opens to 2.5 bb. You call from BB. Flop Q♠ J♥ 2♥. Pot 50 bb · Effective stack 100 bb. You are first to act.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Opponent (BTN) opens to 2.5 bb → You call from BB", { exact: true })).toBeVisible();
+  await expect(page.getByText("You act first", { exact: true })).toBeVisible();
   const opponent = page.getByRole("group", { name: "Opponent · BTN · IP, dealer" });
   const hero = page.getByRole("group", { name: "You · BB · OOP" });
   await expect(opponent.getByLabel("Dealer button")).toBeVisible();

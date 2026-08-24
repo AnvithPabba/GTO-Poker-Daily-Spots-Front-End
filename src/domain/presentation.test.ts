@@ -56,7 +56,7 @@ describe("presentation helpers", () => {
     expect(effectiveStack(publicSpotFixture.decision)).toBe(100);
     expect(storyLine(publicSpotFixture)).toContain("2.5 bb");
     expect(storyLine(publicSpotFixture)).toContain("Q♠ J♥ 2♥");
-    expect(storyLine(publicSpotFixture)).toBe("You open to 2.5 bb. Opponent (BB) calls. Opponent (BB) checks. Flop Q♠ J♥ 2♥. Pot 50 bb · Effective stack 100 bb. Action is on you.");
-    expect(storyLine(heroOopSpotFixture)).toBe("Opponent (BTN) opens to 2.5 bb. You call from BB. Flop Q♠ J♥ 2♥. Pot 50 bb · Effective stack 100 bb. You are first to act.");
+    expect(storyLine(publicSpotFixture)).toBe("You open to 2.5 bb → Opponent (BB) calls → Opponent (BB) checks. Flop: Q♠ J♥ 2♥. Pot: 50 bb. Effective stack: 100 bb. Your action.");
+    expect(storyLine(heroOopSpotFixture)).toBe("Opponent (BTN) opens to 2.5 bb → You call from BB. Flop: Q♠ J♥ 2♥. Pot: 50 bb. Effective stack: 100 bb. You are first to act.");
   });
 });

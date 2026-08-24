@@ -116,7 +116,17 @@ function historyActionText(spot: PublicSpot, event: PublicHistoryEvent): string 
   return `${presentActor(spot, event.actor).role} to act`;
 }
 
-export function storyLine(spot: PublicSpot): string {
+export type HandContextPresentation = {
+  actionLine: string;
+  street: string;
+  board: string;
+  pot: string;
+  effectiveStack: string;
+  decision: string;
+  summary: string;
+};
+
+export function presentHandContext(spot: PublicSpot): HandContextPresentation {
   const preflopParts = spot.preflop.status === "known"
     ? spot.preflop.actions.map((action) => {
       const actor = presentActor(spot, action.actor);
@@ -138,10 +148,24 @@ export function storyLine(spot: PublicSpot): string {
   const postflopActions = spot.history.filter((event) => event.kind === "action");
   const postflop = postflopActions.map((event) => historyActionText(spot, event));
   const street = spot.decision.street.charAt(0).toUpperCase() + spot.decision.street.slice(1);
-  const pieces = [...preflopParts, ...postflop, `${street} ${board || "—"}`, `Pot ${amount ?? "—"} · Effective stack ${stack ?? "—"}`].filter(Boolean);
-  if (postflopActions.length === 0) pieces.push(actor.role === "You" ? "You are first to act" : `Opponent (${actor.position}) is first to act`);
-  else pieces.push(actor.role === "You" ? "Action is on you" : `Action is on Opponent (${actor.position})`);
-  return `${pieces.join(". ")}.`;
+  const decision = postflopActions.length === 0
+    ? actor.role === "You" ? "You act first" : `Opponent (${actor.position}) acts first`
+    : actor.role === "You" ? "Your action" : `Opponent (${actor.position}) to act`;
+  const actionLine = [...preflopParts, ...postflop].join(" → ");
+  const summaryDecision = decision === "You act first" ? "You are first to act" : decision;
+  return {
+    actionLine,
+    street,
+    board: board || "—",
+    pot: amount ?? "—",
+    effectiveStack: stack ?? "—",
+    decision,
+    summary: `${actionLine}. ${street}: ${board || "—"}. Pot: ${amount ?? "—"}. Effective stack: ${stack ?? "—"}. ${summaryDecision}.`,
+  };
+}
+
+export function storyLine(spot: PublicSpot): string {
+  return presentHandContext(spot).summary;
 }
 
 export function decisionLabel(spot: PublicSpot): string {
