@@ -29,6 +29,8 @@ test("home and daily routes focus the visitor on the first unfinished spot", asy
 test("static context, role labels, and starting ranges are immediately usable", async ({ page }) => {
   await page.goto(`/challenge/${publicSpotFixture.spotId}`);
   await expect(page.getByRole("heading", { name: "Hand history" })).toBeVisible();
+  await expect(page.locator(".answer-header").getByText("Your hand", { exact: true })).toBeVisible();
+  await expect(page.getByText("Your strategy", { exact: true })).toHaveCount(0);
   await expect(page.getByText("You open to 2.5 bb → Opponent (BB) calls", { exact: true })).toBeVisible();
   await expect(page.getByText("Opponent (BB) checks", { exact: true })).toBeVisible();
   await expect(page.locator(".street-history__row")).toHaveCount(2);

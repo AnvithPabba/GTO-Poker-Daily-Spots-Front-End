@@ -69,7 +69,7 @@ export function ChallengePage() {
     <div className="game-layout"><div className="game-column">
       <PokerTable spot={loadedSpot} state={loadedSpot.decision} />
     </div><aside className="answer-column" aria-labelledby="answer-heading">
-      <div className="answer-header"><p className="eyebrow">Your strategy</p><h2 id="answer-heading">{formatHand(featured)}</h2><p>How would you play this hand?</p></div>
+      <div className="answer-header"><p className="eyebrow">Your hand</p><h2 id="answer-heading">{formatHand(featured)}</h2><p>How would you play this hand?</p></div>
       <ActionAllocator actions={actions} labelFor={(action) => formatLegalActionLabel(action, loadedSpot.presentation.chipUnit)} value={allocationFor(featured)} onChange={(next) => updateAllocation(featured, next)} disabled={submitting} legend="Action frequencies" />
       <section className="saved-hands" aria-labelledby="saved-hands-heading"><div className="section-heading"><h3 id="saved-hands-heading">Extra hands</h3><span>{allSelected.length}/20</span></div><p>Optional extra hands.</p>
         <div className="saved-hand-list">{allSelected.map((combo) => <article className="saved-hand" key={combo}><div><strong>{formatHand(combo)}</strong><small>{combo === featured ? "Featured · required" : isValidAllocation(allocationFor(combo), actionIds) ? "Ready" : "Needs 100%"}</small></div><div><button type="button" onClick={() => edit(combo)}>Edit</button>{combo !== featured && <button type="button" onClick={() => remove(combo)}>Remove</button>}</div></article>)}</div>
