@@ -64,7 +64,7 @@ export function ChallengePage() {
   }
 
   return <section className="challenge-page">
-    <header className="challenge-heading"><div><h1>{decisionLabel(loadedSpot)}</h1></div><div className="featured-pill"><span>Your hand</span><strong>{formatHand(featured)}</strong></div></header>
+    <header className="challenge-heading"><h1>{decisionLabel(loadedSpot)}</h1></header>
     <HandContext spot={loadedSpot} />
     <div className="game-layout"><div className="game-column">
       <PokerTable spot={loadedSpot} state={loadedSpot.decision} />

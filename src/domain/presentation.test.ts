@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import type { PublicSpot } from "@poker-trainer/contracts";
 import { heroOopSpotFixture, publicSpotFixture } from "../test/fixtures.js";
-import { decisionLabel, effectiveStack, formatCardCode, formatHand, formatLegalActionLabel, formatPosition, presentActor, resolveSpotPlayers, storyLine, turnLabel } from "./presentation.js";
+import { decisionLabel, effectiveStack, formatCardCode, formatHand, formatLegalActionLabel, formatPosition, presentActor, presentHandContext, resolveSpotPlayers, storyLine } from "./presentation.js";
 
 describe("presentation helpers", () => {
   it.each([
@@ -40,8 +41,7 @@ describe("presentation helpers", () => {
 
   it("formats concrete hands and decision labels for players", () => {
     expect(formatHand("AhAs")).toBe("A♥ A♠");
-    expect(decisionLabel(publicSpotFixture)).toBe("Flop · Your Decision");
-    expect(turnLabel(publicSpotFixture)).toBe("Flop · Your turn");
+    expect(decisionLabel(publicSpotFixture)).toBe("Your Decision");
   });
 
   it("keeps absolute solver amounts and appends the configured chip unit", () => {
@@ -56,7 +56,40 @@ describe("presentation helpers", () => {
     expect(effectiveStack(publicSpotFixture.decision)).toBe(100);
     expect(storyLine(publicSpotFixture)).toContain("2.5 bb");
     expect(storyLine(publicSpotFixture)).toContain("Q♠ J♥ 2♥");
-    expect(storyLine(publicSpotFixture)).toBe("You open to 2.5 bb → Opponent (BB) calls → Opponent (BB) checks. Flop: Q♠ J♥ 2♥. Pot: 50 bb. Effective stack: 100 bb. Your action.");
-    expect(storyLine(heroOopSpotFixture)).toBe("Opponent (BTN) opens to 2.5 bb → You call from BB. Flop: Q♠ J♥ 2♥. Pot: 50 bb. Effective stack: 100 bb. You are first to act.");
+    expect(storyLine(publicSpotFixture)).toBe("Preflop: You open to 2.5 bb → Opponent (BB) calls. Flop Q♠ J♥ 2♥: Opponent (BB) checks");
+    expect(storyLine(heroOopSpotFixture)).toBe("Preflop: Opponent (BTN) opens to 2.5 bb → You call from the BB. Flop Q♠ J♥ 2♥: You act first");
+  });
+
+  it("groups action history by street and conjugates hero actions correctly", () => {
+    const riverSpot: PublicSpot = {
+      ...publicSpotFixture,
+      history: [
+        { kind: "deal_hole", actor: "ip", cards: ["6s", "6h"] },
+        { kind: "deal_board", street: "flop", cards: ["Qs", "Jh", "2h"] },
+        { kind: "action", actor: "oop", actionId: "f0", actionType: "check", solverLabel: "CHECK" },
+        { kind: "action", actor: "ip", actionId: "f1", actionType: "check", solverLabel: "CHECK" },
+        { kind: "deal", card: "Kh", solverLabel: "Kh" },
+        { kind: "action", actor: "oop", actionId: "t0", actionType: "bet", solverLabel: "BET 25", amount: 25 },
+        { kind: "action", actor: "ip", actionId: "t1", actionType: "call", solverLabel: "CALL", amount: 25 },
+        { kind: "deal", card: "Td", solverLabel: "Td" },
+        { kind: "action", actor: "oop", actionId: "r0", actionType: "check", solverLabel: "CHECK" },
+        { kind: "decision", actor: "ip" },
+      ],
+      decision: { board: ["Qs", "Jh", "2h", "Kh", "Td"], pot: 100, stacks: { ip: 75, oop: 75 }, street: "river", actor: "ip", allIn: { ip: false, oop: false } },
+      featuredCombo: "6s6h",
+    };
+
+    const context = presentHandContext(riverSpot);
+
+    expect.soft(context.streets.map(({ label, cards }) => [label, cards])).toEqual([
+      ["Preflop", ""],
+      ["Flop", "Q♠ J♥ 2♥"],
+      ["Turn", "K♥"],
+      ["River", "T♦"],
+    ]);
+    expect.soft(context.streets[1]?.actions).toEqual(["Opponent (BB) checks", "You check"]);
+    expect.soft(context.streets[2]?.actions).toEqual(["Opponent (BB) bets 25 bb", "You call 25 bb"]);
+    expect.soft(context.streets[3]?.actions).toEqual(["Opponent (BB) checks"]);
+    expect.soft(context.summary).not.toMatch(/You checks|You calls|You bets|You raises/);
   });
 });

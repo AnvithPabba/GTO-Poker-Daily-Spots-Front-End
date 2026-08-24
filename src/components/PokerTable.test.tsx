@@ -13,7 +13,7 @@ describe("PokerTable positions", () => {
     expect.soft(within(hero).queryByLabelText("Dealer button")).not.toBeInTheDocument();
     expect.soft(within(opponent).getByText("BTN · IP")).toBeVisible();
     expect.soft(within(hero).getByText("BB · OOP")).toBeVisible();
-    expect.soft(screen.getByText("Flop · Your turn")).toBeVisible();
+    expect.soft(document.querySelector(".table-meta")).not.toBeInTheDocument();
     expect.soft(screen.queryByText("In position")).not.toBeInTheDocument();
     expect.soft(screen.queryByText("Out of position")).not.toBeInTheDocument();
   });

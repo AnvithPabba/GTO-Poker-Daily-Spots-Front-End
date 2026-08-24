@@ -7,11 +7,11 @@ describe("HandContext", () => {
   it("renders one compact, data-driven story and the immediate range trigger", () => {
     render(<HandContext spot={heroOopSpotFixture} />);
     expect(screen.getByRole("region", { name: "Hand context" })).toBeVisible();
-    expect.soft(screen.getByText("Opponent (BTN) opens to 2.5 bb → You call from BB", { exact: true })).toBeVisible();
+    expect.soft(screen.getByRole("heading", { name: "Hand history" })).toBeVisible();
+    expect.soft(screen.getByText("Opponent (BTN) opens to 2.5 bb → You call from the BB", { exact: true })).toBeVisible();
     expect.soft(screen.getByText("Q♠ J♥ 2♥", { exact: true })).toBeVisible();
-    expect.soft(screen.getByText("50 bb", { exact: true })).toBeVisible();
-    expect.soft(screen.getByText("100 bb", { exact: true })).toBeVisible();
     expect.soft(screen.getByText("You act first", { exact: true })).toBeVisible();
+    expect.soft(screen.getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getByRole("button", { name: "View starting ranges" })).toBeVisible();
   });
 
@@ -31,8 +31,8 @@ describe("HandContext", () => {
   it("does not invent a preflop range when context is unknown", () => {
     const spot = { ...publicSpotFixture, preflop: { status: "unknown", label: "Preflop start unavailable", summary: "Legacy context was not preserved." } as const };
     render(<HandContext spot={spot} />);
-    expect(screen.getByText("Preflop start unavailable. No story was guessed.", { exact: true })).toBeVisible();
-    expect(screen.getByText(/No story was guessed/)).toBeVisible();
+    expect(screen.getByText("Starting action unavailable", { exact: true })).toBeVisible();
+    expect(screen.getByText("Preflop details were not saved for this spot.", { exact: true })).toBeVisible();
     expect(screen.queryByRole("button", { name: "View starting ranges" })).not.toBeInTheDocument();
   });
 });

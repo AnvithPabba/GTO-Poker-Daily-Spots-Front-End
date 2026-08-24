@@ -99,16 +99,23 @@ export function formatLegalActionLabel(action: LegalAction, unit: PublicSpot["pr
     : `${actionName} · ${formatted}`;
 }
 
+function actorSubject(spot: PublicSpot, actor: Actor): { subject: string; isHero: boolean } {
+  const presented = presentActor(spot, actor);
+  return {
+    subject: presented.role === "You" ? "You" : `Opponent (${presented.position})`,
+    isHero: presented.role === "You",
+  };
+}
+
 function historyActionText(spot: PublicSpot, event: PublicHistoryEvent): string {
   if (event.kind === "action") {
-    const actor = presentActor(spot, event.actor);
-    const subject = actor.role === "You" ? "You" : `Opponent (${actor.position})`;
+    const { subject, isHero } = actorSubject(spot, event.actor);
     const amount = formatAmount(event.toAmount ?? event.amount, spot.presentation.chipUnit);
-    if (event.actionType === "check") return `${subject} checks`;
-    if (event.actionType === "call") return `${subject} calls${amount ? ` ${amount}` : ""}`;
-    if (event.actionType === "bet") return `${subject} bets${amount ? ` ${amount}` : ""}`;
-    if (event.actionType === "raise") return `${subject} raises${amount ? ` to ${amount}` : ""}`;
-    return `${subject} folds`;
+    if (event.actionType === "check") return `${subject} ${isHero ? "check" : "checks"}`;
+    if (event.actionType === "call") return `${subject} ${isHero ? "call" : "calls"}${amount ? ` ${amount}` : ""}`;
+    if (event.actionType === "bet") return `${subject} ${isHero ? "bet" : "bets"}${amount ? ` ${amount}` : ""}`;
+    if (event.actionType === "raise") return `${subject} ${isHero ? "raise" : "raises"}${amount ? ` to ${amount}` : ""}`;
+    return `${subject} ${isHero ? "fold" : "folds"}`;
   }
   if (event.kind === "deal_board") return `${event.street} · ${event.cards.map(formatCardCode).join(" ")}`;
   if (event.kind === "deal") return `Deal ${formatCardCode(event.card)}`;
@@ -116,52 +123,87 @@ function historyActionText(spot: PublicSpot, event: PublicHistoryEvent): string 
   return `${presentActor(spot, event.actor).role} to act`;
 }
 
+export type StreetHistoryPresentation = {
+  street: "preflop" | "flop" | "turn" | "river";
+  label: string;
+  cards: string;
+  actions: string[];
+};
+
 export type HandContextPresentation = {
-  actionLine: string;
-  street: string;
-  board: string;
-  pot: string;
-  effectiveStack: string;
-  decision: string;
+  streets: StreetHistoryPresentation[];
   summary: string;
 };
 
+const POSTFLOP_STREETS = ["flop", "turn", "river"] as const;
+
+function titleCase(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function preflopActionText(spot: PublicSpot): string[] {
+  if (spot.preflop.status !== "known") return ["Starting action unavailable"];
+  return spot.preflop.actions.map((action) => {
+    const { subject, isHero } = actorSubject(spot, action.actor);
+    const actor = presentActor(spot, action.actor);
+    const amount = formatAmount(action.amountBb, "bb");
+    if (action.type === "call") return isHero ? `You call from the ${actor.position}` : `${subject} calls`;
+    if (action.type === "open") return `${subject} ${isHero ? "open" : "opens"}${amount ? ` to ${amount}` : ""}`;
+    if (action.type === "three_bet") return `${subject} ${isHero ? "3-bet" : "3-bets"}${amount ? ` to ${amount}` : ""}`;
+    if (action.type === "four_bet") return `${subject} ${isHero ? "4-bet" : "4-bets"}${amount ? ` to ${amount}` : ""}`;
+    if (action.type === "raise") return `${subject} ${isHero ? "raise" : "raises"}${amount ? ` to ${amount}` : ""}`;
+    if (action.type === "check") return `${subject} ${isHero ? "check" : "checks"}`;
+    return `${subject} ${isHero ? "fold" : "folds"}`;
+  });
+}
+
+function cardsForStreet(spot: PublicSpot, street: "flop" | "turn" | "river"): string {
+  const cards = street === "flop" ? spot.decision.board.slice(0, 3)
+    : street === "turn" ? spot.decision.board.slice(3, 4)
+      : spot.decision.board.slice(4, 5);
+  return cards.map(formatCardCode).join(" ");
+}
+
 export function presentHandContext(spot: PublicSpot): HandContextPresentation {
-  const preflopParts = spot.preflop.status === "known"
-    ? spot.preflop.actions.map((action) => {
-      const actor = presentActor(spot, action.actor);
-      const subject = actor.role === "You" ? "You" : `Opponent (${actor.position})`;
-      const amount = formatAmount(action.amountBb, "bb");
-      if (action.type === "call") return actor.role === "You" ? `You call from ${actor.position}` : `${subject} calls`;
-      if (action.type === "open") return `${subject} ${actor.role === "You" ? "open" : "opens"}${amount ? ` to ${amount}` : ""}`;
-      if (action.type === "three_bet") return `${subject} ${actor.role === "You" ? "3-bet" : "3-bets"}${amount ? ` to ${amount}` : ""}`;
-      if (action.type === "four_bet") return `${subject} ${actor.role === "You" ? "4-bet" : "4-bets"}${amount ? ` to ${amount}` : ""}`;
-      if (action.type === "raise") return `${subject} ${actor.role === "You" ? "raise" : "raises"}${amount ? ` to ${amount}` : ""}`;
-      if (action.type === "check") return `${subject} ${actor.role === "You" ? "check" : "checks"}`;
-      return `${subject} ${actor.role === "You" ? "fold" : "folds"}`;
-    })
-    : [spot.preflop.label];
-  const board = spot.decision.board.map(formatCardCode).join(" ");
-  const actor = presentActor(spot, spot.decision.actor);
-  const amount = formatAmount(spot.decision.pot, spot.presentation.chipUnit);
-  const stack = formatAmount(effectiveStack(spot.decision), spot.presentation.chipUnit);
-  const postflopActions = spot.history.filter((event) => event.kind === "action");
-  const postflop = postflopActions.map((event) => historyActionText(spot, event));
-  const street = spot.decision.street.charAt(0).toUpperCase() + spot.decision.street.slice(1);
-  const decision = postflopActions.length === 0
-    ? actor.role === "You" ? "You act first" : `Opponent (${actor.position}) acts first`
-    : actor.role === "You" ? "Your action" : `Opponent (${actor.position}) to act`;
-  const actionLine = [...preflopParts, ...postflop].join(" → ");
-  const summaryDecision = decision === "You act first" ? "You are first to act" : decision;
-  return {
-    actionLine,
-    street,
-    board: board || "—",
-    pot: amount ?? "—",
-    effectiveStack: stack ?? "—",
-    decision,
-    summary: `${actionLine}. ${street}: ${board || "—"}. Pot: ${amount ?? "—"}. Effective stack: ${stack ?? "—"}. ${summaryDecision}.`,
-  };
+  const actionGroups: Record<"flop" | "turn" | "river", string[]> = { flop: [], turn: [], river: [] };
+  let currentStreet: "flop" | "turn" | "river" = "flop";
+
+  for (const event of spot.history) {
+    if (event.kind === "deal_board") {
+      currentStreet = event.street;
+      continue;
+    }
+    if (event.kind === "deal") {
+      const boardIndex = spot.decision.board.indexOf(event.card);
+      currentStreet = boardIndex === 4 ? "river" : boardIndex === 3 ? "turn" : currentStreet === "flop" ? "turn" : "river";
+      continue;
+    }
+    if (event.kind === "action") actionGroups[currentStreet].push(historyActionText(spot, event));
+  }
+
+  const decisionStreetIndex = POSTFLOP_STREETS.indexOf(spot.decision.street);
+  const streets: StreetHistoryPresentation[] = [{
+    street: "preflop",
+    label: "Preflop",
+    cards: "",
+    actions: preflopActionText(spot),
+  }];
+  for (const [index, street] of POSTFLOP_STREETS.entries()) {
+    if (index > decisionStreetIndex) break;
+    const actions = actionGroups[street];
+    if (street === spot.decision.street && actions.length === 0) {
+      const actor = presentActor(spot, spot.decision.actor);
+      actions.push(actor.role === "You" ? "You act first" : `Opponent (${actor.position}) acts first`);
+    }
+    streets.push({ street, label: titleCase(street), cards: cardsForStreet(spot, street), actions });
+  }
+
+  const summary = streets.map((item) => {
+    const cards = item.cards ? ` ${item.cards}` : "";
+    const actions = item.actions.length > 0 ? item.actions.join(" → ") : "No action";
+    return `${item.label}${cards}: ${actions}`;
+  }).join(". ");
+  return { streets, summary };
 }
 
 export function storyLine(spot: PublicSpot): string {
@@ -169,13 +211,7 @@ export function storyLine(spot: PublicSpot): string {
 }
 
 export function decisionLabel(spot: PublicSpot): string {
-  const street = spot.decision.street.charAt(0).toUpperCase() + spot.decision.street.slice(1);
-  return `${street} · ${presentActor(spot, spot.decision.actor).role === "You" ? "Your Decision" : "Opponent Decision"}`;
-}
-
-export function turnLabel(spot: PublicSpot, actor: Actor = spot.decision.actor): string {
-  const street = spot.decision.street.charAt(0).toUpperCase() + spot.decision.street.slice(1);
-  return `${street} · ${presentActor(spot, actor).role === "You" ? "Your turn" : "Opponent turn"}`;
+  return presentActor(spot, spot.decision.actor).role === "You" ? "Your Decision" : "Opponent Decision";
 }
 
 export function formatPercentageBasisPoints(value: number): string {

@@ -143,14 +143,16 @@ not predict that a submission will be official.
 ### Static challenge context
 
 `HandContext` is the single story surface on a challenge. It builds a compact,
-responsive context strip from the API response. The action sequence is rendered
-as a readable arrow-separated line; street/board, pot, effective stack, and the
-current decision are distinct labeled fields rather than a dense paragraph or
-duplicated metadata row. It never hardcodes positions, scenario names, or bet
+responsive street history from the API response. Preflop, Flop, Turn, and River
+are separate rows, while actions within one street use a readable arrow
+sequence. The flop row shows the three flop cards; turn and river rows show only
+their newly dealt card. The table remains authoritative for the complete board,
+pot, stacks, and current visual state, so those fields are not repeated in the
+history card. It never hardcodes positions, scenario names, streets, or bet
 sizes. The presentation layer
-(`formatHand`, `formatPosition`, `formatLegalActionLabel`, `storyLine`,
-`decisionLabel`, and `turnLabel`) translates wire notation into phrases such as
-`Flop · Your Decision`, `Opponent (BTN) opens to 2.5 bb. You call from BB.`,
+(`formatHand`, `formatPosition`, `formatLegalActionLabel`, `storyLine`, and
+`decisionLabel`) translates wire notation into phrases such as
+`Your Decision`, `Opponent (BTN) opens to 2.5 bb`, and `You call 25 bb`,
 `You · BB · OOP`, and `Opponent · BTN · IP`. `resolveSpotPlayers()` is the one
 presentation source for hero/opponent role, actual poker position, IP/OOP lane,
 dealer ownership, and postflop order. It derives the dealer from `BTN`, never
@@ -160,7 +162,9 @@ actual position when a legacy presentation object contains only generic
 headings, saved-hand list, and result summaries.
 
 The table always renders `spot.decision`, and the answer editor is enabled as
-soon as the spot is loaded. Playback is intentionally absent from the active
+soon as the spot is loaded. The active seat styling communicates who acts; the
+table does not repeat a `River · Your turn` caption already conveyed by the
+history and page heading. Playback is intentionally absent from the active
 route: the old `playback.ts` reducer and `poker-sound.ts` service remain small,
 tested dormant infrastructure for a future opt-in animation mode. There is no
 replay counter, locked history, or sound control in the current challenge UI.

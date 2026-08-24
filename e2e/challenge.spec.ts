@@ -23,12 +23,15 @@ test("home and daily routes focus the visitor on the first unfinished spot", asy
   await page.getByRole("link", { name: "Daily", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Today’s game" })).toBeVisible();
   await page.getByRole("link", { name: /Continue/ }).click();
-  await expect(page.locator("h1", { hasText: "Flop · Your Decision" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your Decision" })).toBeVisible();
 });
 
 test("static context, role labels, and starting ranges are immediately usable", async ({ page }) => {
   await page.goto(`/challenge/${publicSpotFixture.spotId}`);
-  await expect(page.getByText("You open to 2.5 bb → Opponent (BB) calls → Opponent (BB) checks", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hand history" })).toBeVisible();
+  await expect(page.getByText("You open to 2.5 bb → Opponent (BB) calls", { exact: true })).toBeVisible();
+  await expect(page.getByText("Opponent (BB) checks", { exact: true })).toBeVisible();
+  await expect(page.locator(".street-history__row")).toHaveCount(2);
   await expect(page.getByRole("group", { name: "You · BTN · IP, dealer" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Opponent · BB · OOP" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Submit answer" })).toBeEnabled();
@@ -46,7 +49,7 @@ test("BTN owns the dealer button while hero BB/OOP acts first", async ({ page })
   await page.route(`**/api/v1/spots/${heroOopSpotFixture.spotId}`, (route) => route.fulfill({ json: heroOopSpotFixture }));
   await page.goto(`/challenge/${heroOopSpotFixture.spotId}`);
 
-  await expect(page.getByText("Opponent (BTN) opens to 2.5 bb → You call from BB", { exact: true })).toBeVisible();
+  await expect(page.getByText("Opponent (BTN) opens to 2.5 bb → You call from the BB", { exact: true })).toBeVisible();
   await expect(page.getByText("You act first", { exact: true })).toBeVisible();
   const opponent = page.getByRole("group", { name: "Opponent · BTN · IP, dealer" });
   const hero = page.getByRole("group", { name: "You · BB · OOP" });
@@ -54,7 +57,7 @@ test("BTN owns the dealer button while hero BB/OOP acts first", async ({ page })
   await expect(hero.getByLabel("Dealer button")).toHaveCount(0);
   await expect(page.getByText("In position", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Out of position", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Flop · Your turn", { exact: true })).toBeVisible();
+  await expect(page.locator(".table-meta")).toHaveCount(0);
 });
 
 test("additional-hand modal saves, edits, and removes an exact combo", async ({ page }) => {

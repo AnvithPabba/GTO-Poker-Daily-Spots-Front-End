@@ -1,6 +1,6 @@
 import { cardAssets, asCardCode } from "../assets/card-assets.js";
 import type { PublicSpot, TableState } from "@poker-trainer/contracts";
-import { formatAmount, formatCardCode, formatHand, presentActor, turnLabel } from "../domain/presentation.js";
+import { formatAmount, formatCardCode, formatHand, presentActor } from "../domain/presentation.js";
 
 function Card({ value }: { value: string }) {
   const card = asCardCode(value);
@@ -26,6 +26,5 @@ export function PokerTable({ spot, state }: { spot: PublicSpot; state: TableStat
       <p className="pot"><span>Pot</span><strong>{formatAmount(state.pot, spot.presentation.chipUnit)}</strong></p>
     </div>
     <Seat actor={hero} isHero placement="bottom" />
-    <p className="table-meta"><strong>{turnLabel(spot, state.actor)}</strong></p>
   </div></section>;
 }
