@@ -148,10 +148,13 @@ public postflop actions, board, pot, effective stack, and the current actor. It
 never hardcodes positions, scenario names, or bet sizes. The presentation layer
 (`formatHand`, `formatPosition`, `formatLegalActionLabel`, `storyLine`,
 `decisionLabel`, and `turnLabel`) translates wire notation into phrases such as
-`Flop · Your Decision`, `BTN opens to 2.5 bb. BB calls.`, `You · BB`, and
-`Out of position`. `presentActor()` consistently maps the server's `heroActor`
-to `You`/`Opponent`; if a source position is already `IP` or `OOP`, the lane is
-not duplicated. The same formatter is used by the hand context, table, range
+`Flop · Your Decision`, `Opponent (BTN) opens to 2.5 bb. You call from BB.`,
+`You · BB · OOP`, and `Opponent · BTN · IP`. `resolveSpotPlayers()` is the one
+presentation source for hero/opponent role, actual poker position, IP/OOP lane,
+dealer ownership, and postflop order. It derives the dealer from `BTN`, never
+from hero identity or visual seat order. Structured preflop actions supply the
+actual position when a legacy presentation object contains only generic
+`IP`/`OOP` labels. The same resolver is used by the hand context, table, range
 headings, saved-hand list, and result summaries.
 
 The table always renders `spot.decision`, and the answer editor is enabled as
@@ -272,7 +275,10 @@ flowchart TD
 - `PokerTrainer` composes one validated/adapted spot and exposes callbacks for
   submission and practice retry.
 - `PokerTable` renders normalized props only. It knows seat coordinates but
-  not solver-tree structure.
+  not solver-tree structure. Seats show `You`/`Opponent` first and one compact
+  `BB · OOP`/`BTN · IP` line beneath it. The dealer badge is rendered only when
+  the shared player resolver reports a `BTN` position; verbose duplicate
+  `In position`/`Out of position` copy is forbidden.
 - `PlayingCard` accepts known card, face-down state, size, animation state,
   disabled/ghost state, and accessible label.
 - `HandContext` is the single static story surface for the active challenge. It
@@ -389,7 +395,8 @@ large desktop
 - Use normalized absolute anchors only inside the table for seats, board, pot,
   dealer, action labels, and optional chip visuals.
 - Place hero bottom-center and opponent top-center. Display combined labels
-  such as “You · IP · BTN” and “Opponent · OOP · BB” from spot data.
+  such as “You · BB · OOP” and “Opponent · BTN · IP” from spot data. Visual
+  placement does not determine dealer ownership or action order.
 - Keep DOM/source order logical: opponent, board/pot, hero, history, decision.
   Visual coordinate positioning must not scramble screen-reader reading order.
 

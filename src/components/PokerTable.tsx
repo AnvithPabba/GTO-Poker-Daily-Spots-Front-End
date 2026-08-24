@@ -13,8 +13,8 @@ export function PokerTable({ spot, state }: { spot: PublicSpot; state: TableStat
   const hero = spot.presentation.heroActor;
   const opponent = hero === "ip" ? "oop" : "ip";
   const heroCards = [spot.featuredCombo.slice(0, 2), spot.featuredCombo.slice(2, 4)];
-  const Seat = ({ actor, isHero, placement }: { actor: "ip" | "oop"; isHero: boolean; placement: "top" | "bottom" }) => { const presented = presentActor(spot, actor); return <div className={`table-seat table-seat--${placement} ${state.actor === actor ? "table-seat--active" : ""}`}>
-    <div className="seat-heading"><strong>{presented.seatLabel}</strong>{spot.presentation.dealerActor === actor && <span className="dealer-button" title="Dealer">D</span>}<small>{presented.laneDescription}</small></div>
+  const Seat = ({ actor, isHero, placement }: { actor: "ip" | "oop"; isHero: boolean; placement: "top" | "bottom" }) => { const presented = presentActor(spot, actor); return <div className={`table-seat table-seat--${placement} ${state.actor === actor ? "table-seat--active" : ""}`} role="group" aria-label={`${presented.label}${presented.isDealer ? ", dealer" : ""}`}>
+    <div className="seat-heading"><strong>{presented.seatLabel}</strong>{presented.isDealer && <span className="dealer-button" title="Dealer" aria-label="Dealer button">D</span>}<small>{presented.positionLabel}</small></div>
     <span>{formatAmount(state.stacks[actor], spot.presentation.chipUnit)}</span>
     <div className="hole-cards" aria-label={isHero ? `Your hand: ${formatHand(spot.featuredCombo)}` : "Opponent hand hidden"}>{isHero ? heroCards.map((card) => <Card key={card} value={card} />) : <><CardBack /><CardBack /></>}</div>
     {isHero && <small>Your hand</small>}

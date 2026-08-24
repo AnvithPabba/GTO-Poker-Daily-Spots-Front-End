@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { publicSpotFixture } from "../test/fixtures.js";
-import { decisionLabel, effectiveStack, formatCardCode, formatHand, formatLegalActionLabel, formatPosition, presentActor, storyLine, turnLabel } from "./presentation.js";
+import { heroOopSpotFixture, publicSpotFixture } from "../test/fixtures.js";
+import { decisionLabel, effectiveStack, formatCardCode, formatHand, formatLegalActionLabel, formatPosition, presentActor, resolveSpotPlayers, storyLine, turnLabel } from "./presentation.js";
 
 describe("presentation helpers", () => {
   it.each([
@@ -12,12 +12,30 @@ describe("presentation helpers", () => {
   it("maps hero and opponent independently of their positions", () => {
     expect(presentActor(publicSpotFixture, "ip").label).toBe("You · BTN · IP");
     expect(presentActor(publicSpotFixture, "oop").label).toBe("Opponent · BB · OOP");
-    expect(presentActor(publicSpotFixture, "ip").seatLabel).toBe("You · BTN");
-    expect(presentActor(publicSpotFixture, "oop").laneDescription).toBe("Out of position");
+    expect(presentActor(publicSpotFixture, "ip").seatLabel).toBe("You");
+    expect(presentActor(publicSpotFixture, "oop").positionLabel).toBe("BB · OOP");
     expect(formatPosition(publicSpotFixture, "ip")).toBe("BTN · IP");
-    const laneNamed = { ...publicSpotFixture, presentation: { ...publicSpotFixture.presentation, positions: { ip: "IP", oop: "OOP" } } };
+    const laneNamed = {
+      ...publicSpotFixture,
+      preflop: { status: "unknown", label: "Preflop start unavailable", summary: "Legacy context." } as const,
+      presentation: { ...publicSpotFixture.presentation, positions: { ip: "IP", oop: "OOP" } },
+    };
     expect(presentActor(laneNamed, "ip").label).toBe("You · IP");
     expect(formatPosition(laneNamed, "oop")).toBe("OOP");
+  });
+
+  it("derives BTN dealer, BB first actor, and hero roles from one position model", () => {
+    const players = resolveSpotPlayers(heroOopSpotFixture);
+
+    expect.soft(players.oop.position).toBe("BB");
+    expect.soft(players.oop.label).toBe("You · BB · OOP");
+    expect.soft(players.oop.isDealer).toBe(false);
+    expect.soft(players.oop.actsFirstPostflop).toBe(true);
+    expect.soft(players.ip.position).toBe("BTN");
+    expect.soft(players.ip.label).toBe("Opponent · BTN · IP");
+    expect.soft(players.ip.isDealer).toBe(true);
+    expect.soft(players.ip.actsFirstPostflop).toBe(false);
+    expect.soft(heroOopSpotFixture.decision.actor).toBe("oop");
   });
 
   it("formats concrete hands and decision labels for players", () => {
@@ -38,8 +56,7 @@ describe("presentation helpers", () => {
     expect(effectiveStack(publicSpotFixture.decision)).toBe(100);
     expect(storyLine(publicSpotFixture)).toContain("2.5 bb");
     expect(storyLine(publicSpotFixture)).toContain("Q♠ J♥ 2♥");
-    expect(storyLine(publicSpotFixture)).toBe("You open to 2.5 bb. BB calls. BB checks. Flop: Q♠ J♥ 2♥. Pot: 50 bb. Effective stack: 100 bb. You are first to act.");
-    const heroOop = { ...publicSpotFixture, presentation: { ...publicSpotFixture.presentation, heroActor: "oop" as const }, decision: { ...publicSpotFixture.decision, actor: "oop" as const } };
-    expect(storyLine(heroOop)).toContain("BTN opens to 2.5 bb. You call from the BB");
+    expect(storyLine(publicSpotFixture)).toBe("You open to 2.5 bb. Opponent (BB) calls. Opponent (BB) checks. Flop Q♠ J♥ 2♥. Pot 50 bb · Effective stack 100 bb. Action is on you.");
+    expect(storyLine(heroOopSpotFixture)).toBe("Opponent (BTN) opens to 2.5 bb. You call from BB. Flop Q♠ J♥ 2♥. Pot 50 bb · Effective stack 100 bb. You are first to act.");
   });
 });

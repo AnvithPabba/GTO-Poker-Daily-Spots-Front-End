@@ -8,17 +8,48 @@ export type ActorPresentation = {
   position: string;
   lane: "IP" | "OOP";
   seatLabel: string;
-  laneDescription: "In position" | "Out of position";
+  positionLabel: string;
   label: string;
+  isDealer: boolean;
+  actsFirstPostflop: boolean;
 };
 
+function positionFromPreflop(spot: PublicSpot, actor: Actor): string | undefined {
+  if (spot.preflop.status !== "known") return undefined;
+  const positions = [...new Set(spot.preflop.actions.filter((action) => action.actor === actor).map((action) => action.position.trim()).filter(Boolean))];
+  return positions.length === 1 ? positions[0] : undefined;
+}
+
+function resolvedPosition(spot: PublicSpot, actor: Actor): string {
+  return positionFromPreflop(spot, actor) ?? spot.presentation.positions[actor];
+}
+
+/** Resolve role, position, lane, button, and action order from one spot model. */
+export function resolveSpotPlayers(spot: PublicSpot): Record<Actor, ActorPresentation> {
+  const positions = { ip: resolvedPosition(spot, "ip"), oop: resolvedPosition(spot, "oop") };
+  const create = (actor: Actor): ActorPresentation => {
+    const isHero = spot.presentation.heroActor === actor;
+    const lane = actor.toUpperCase() as "IP" | "OOP";
+    const position = positions[actor];
+    const role = isHero ? "You" : "Opponent";
+    const positionLabel = position.toUpperCase() === lane ? position : `${position} · ${lane}`;
+    return {
+      actor,
+      role,
+      position,
+      lane,
+      seatLabel: role,
+      positionLabel,
+      label: `${role} · ${positionLabel}`,
+      isDealer: position.toUpperCase() === "BTN",
+      actsFirstPostflop: actor === "oop",
+    };
+  };
+  return { ip: create("ip"), oop: create("oop") };
+}
+
 export function presentActor(spot: PublicSpot, actor: Actor): ActorPresentation {
-  const isHero = spot.presentation.heroActor === actor;
-  const lane = actor.toUpperCase() as "IP" | "OOP";
-  const position = spot.presentation.positions[actor];
-  const role = isHero ? "You" : "Opponent";
-  const positionLabel = position.toUpperCase() === lane ? position : `${position} · ${lane}`;
-  return { actor, role, position, lane, seatLabel: `${role} · ${position}`, laneDescription: lane === "IP" ? "In position" : "Out of position", label: `${role} · ${positionLabel}` };
+  return resolveSpotPlayers(spot)[actor];
 }
 
 const SUIT_GLYPHS: Record<string, string> = { s: "♠", h: "♥", d: "♦", c: "♣" };
@@ -71,7 +102,7 @@ export function formatLegalActionLabel(action: LegalAction, unit: PublicSpot["pr
 function historyActionText(spot: PublicSpot, event: PublicHistoryEvent): string {
   if (event.kind === "action") {
     const actor = presentActor(spot, event.actor);
-    const subject = actor.role === "You" ? "You" : actor.position;
+    const subject = actor.role === "You" ? "You" : `Opponent (${actor.position})`;
     const amount = formatAmount(event.toAmount ?? event.amount, spot.presentation.chipUnit);
     if (event.actionType === "check") return `${subject} checks`;
     if (event.actionType === "call") return `${subject} calls${amount ? ` ${amount}` : ""}`;
@@ -86,28 +117,30 @@ function historyActionText(spot: PublicSpot, event: PublicHistoryEvent): string 
 }
 
 export function storyLine(spot: PublicSpot): string {
-  const preflop = spot.preflop.status === "known"
+  const preflopParts = spot.preflop.status === "known"
     ? spot.preflop.actions.map((action) => {
       const actor = presentActor(spot, action.actor);
-      const label = action.label.replace(new RegExp(`^${action.position}\\s*`, "i"), "");
-      if (action.type === "call") return `${actor.role === "You" ? "You call" : `${action.position} calls`}${actor.role === "You" ? ` from the ${action.position}` : ""}`;
-      if (action.type === "open" || action.type === "raise" || action.type === "three_bet" || action.type === "four_bet") {
-        const subject = actor.role === "You" ? "You" : action.position;
-        const verb = label.toLowerCase().replace(/^opens?\b/, actor.role === "You" ? "open" : "opens");
-        return `${subject} ${verb}`;
-      }
-      return `${actor.role === "You" ? "You" : action.position} ${label.toLowerCase()}`;
+      const subject = actor.role === "You" ? "You" : `Opponent (${actor.position})`;
+      const amount = formatAmount(action.amountBb, "bb");
+      if (action.type === "call") return actor.role === "You" ? `You call from ${actor.position}` : `${subject} calls`;
+      if (action.type === "open") return `${subject} ${actor.role === "You" ? "open" : "opens"}${amount ? ` to ${amount}` : ""}`;
+      if (action.type === "three_bet") return `${subject} ${actor.role === "You" ? "3-bet" : "3-bets"}${amount ? ` to ${amount}` : ""}`;
+      if (action.type === "four_bet") return `${subject} ${actor.role === "You" ? "4-bet" : "4-bets"}${amount ? ` to ${amount}` : ""}`;
+      if (action.type === "raise") return `${subject} ${actor.role === "You" ? "raise" : "raises"}${amount ? ` to ${amount}` : ""}`;
+      if (action.type === "check") return `${subject} ${actor.role === "You" ? "check" : "checks"}`;
+      return `${subject} ${actor.role === "You" ? "fold" : "folds"}`;
     })
-      .join(". ") + "."
-    : spot.preflop.label;
+    : [spot.preflop.label];
   const board = spot.decision.board.map(formatCardCode).join(" ");
   const actor = presentActor(spot, spot.decision.actor);
   const amount = formatAmount(spot.decision.pot, spot.presentation.chipUnit);
   const stack = formatAmount(effectiveStack(spot.decision), spot.presentation.chipUnit);
-  const postflop = spot.history.filter((event) => event.kind === "action").map((event) => historyActionText(spot, event)).join(". ");
+  const postflopActions = spot.history.filter((event) => event.kind === "action");
+  const postflop = postflopActions.map((event) => historyActionText(spot, event));
   const street = spot.decision.street.charAt(0).toUpperCase() + spot.decision.street.slice(1);
-  const pieces = [preflop.replace(/\.$/, ""), postflop, `${street}: ${board || "—"}`, `Pot: ${amount ?? "—"}`, `Effective stack: ${stack ?? "—"}`].filter(Boolean);
-  pieces.push(actor.role === "You" ? "You are first to act" : `${actor.position} acts first`);
+  const pieces = [...preflopParts, ...postflop, `${street} ${board || "—"}`, `Pot ${amount ?? "—"} · Effective stack ${stack ?? "—"}`].filter(Boolean);
+  if (postflopActions.length === 0) pieces.push(actor.role === "You" ? "You are first to act" : `Opponent (${actor.position}) is first to act`);
+  else pieces.push(actor.role === "You" ? "Action is on you" : `Action is on Opponent (${actor.position})`);
   return `${pieces.join(". ")}.`;
 }
 

@@ -43,6 +43,27 @@ export const publicSpotFixture: PublicSpot = {
   presentation: { heroActor: "ip", dealerActor: "ip", positions: { ip: "BTN", oop: "BB" }, holdingVisibility: "featured_hero", chipUnit: "bb" },
 };
 
+/** Regression fixture for BTN open, hero BB call, and a root flop decision. */
+export const heroOopSpotFixture: PublicSpot = {
+  ...publicSpotFixture,
+  spotId: "fixture-oop-spot",
+  spotVersionId: "fixture-oop-spot-v3",
+  initialState: { ...publicSpotFixture.initialState, actor: "oop" },
+  history: [
+    { kind: "deal_hole", actor: "oop", cards: ["8s", "8h"] },
+    { kind: "deal_board", street: "flop", cards: ["Qs", "Jh", "2h"] },
+    { kind: "decision", actor: "oop" },
+  ],
+  decision: { ...publicSpotFixture.decision, actor: "oop" },
+  featuredCombo: "8s8h",
+  selectableCombos: [{ combo: "8s8h", category: "pair" }, { combo: "AcKc", category: "suited" }],
+  // This intentionally mirrors a legacy payload: structured preflop actions
+  // retain BTN/BB, while presentation contains generic lanes and a bad dealer
+  // fallback. The shared player resolver must recover from the authoritative
+  // action positions instead of rendering an impossible table.
+  presentation: { ...publicSpotFixture.presentation, heroActor: "oop", dealerActor: "oop", positions: { ip: "IP", oop: "OOP" } },
+};
+
 export const dailyGameFixture: DailyGame = {
   date: "2026-08-22",
   requestedDate: "2026-08-22",

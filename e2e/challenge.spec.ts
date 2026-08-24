@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { attemptFixture, dailyGameFixture, publicSpotFixture } from "../src/test/fixtures.js";
+import { attemptFixture, dailyGameFixture, heroOopSpotFixture, publicSpotFixture } from "../src/test/fixtures.js";
 
 const stats = { currentStreak: 2, bestStreak: 4, dailyGamesCompleted: 8, spotsCompleted: 11, averageScoreBasisPoints: 8_125, breakdowns: { scenarios: [], streets: [], positions: [] } };
 const history = { attempts: [{ attemptId: attemptFixture.attemptId, spotId: attemptFixture.spotId, spotVersionId: attemptFixture.spotVersionId, attemptKind: "official", score: attemptFixture.score, createdAt: attemptFixture.createdAt }] };
@@ -28,9 +28,9 @@ test("home and daily routes focus the visitor on the first unfinished spot", asy
 
 test("static context, role labels, and starting ranges are immediately usable", async ({ page }) => {
   await page.goto(`/challenge/${publicSpotFixture.spotId}`);
-  await expect(page.getByText(/You open to 2\.5 bb\. BB calls\./)).toBeVisible();
-  await expect(page.getByLabel("Current hand context").getByText("BTN · IP", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Current hand context").getByText("BB · OOP", { exact: true })).toBeVisible();
+  await expect(page.getByText("You open to 2.5 bb. Opponent (BB) calls. Opponent (BB) checks. Flop Q♠ J♥ 2♥. Pot 50 bb · Effective stack 100 bb. Action is on you.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("group", { name: "You · BTN · IP, dealer" })).toBeVisible();
+  await expect(page.getByRole("group", { name: "Opponent · BB · OOP" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Submit answer" })).toBeEnabled();
   await expect(page.getByRole("button", { name: /Play|Skip|Replay|Sound/ })).toHaveCount(0);
   await page.getByRole("button", { name: "View starting ranges" }).click();
@@ -39,6 +39,21 @@ test("static context, role labels, and starting ranges are immediately usable", 
   await expect(page.getByRole("grid", { name: "Opponent · BB · OOP starting range" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog", { name: "Starting ranges" })).toHaveCount(0);
+});
+
+test("BTN owns the dealer button while hero BB/OOP acts first", async ({ page }) => {
+  await page.unroute(`**/api/v1/spots/${publicSpotFixture.spotId}`);
+  await page.route(`**/api/v1/spots/${heroOopSpotFixture.spotId}`, (route) => route.fulfill({ json: heroOopSpotFixture }));
+  await page.goto(`/challenge/${heroOopSpotFixture.spotId}`);
+
+  await expect(page.getByText("Opponent (BTN) opens to 2.5 bb. You call from BB. Flop Q♠ J♥ 2♥. Pot 50 bb · Effective stack 100 bb. You are first to act.", { exact: true })).toBeVisible();
+  const opponent = page.getByRole("group", { name: "Opponent · BTN · IP, dealer" });
+  const hero = page.getByRole("group", { name: "You · BB · OOP" });
+  await expect(opponent.getByLabel("Dealer button")).toBeVisible();
+  await expect(hero.getByLabel("Dealer button")).toHaveCount(0);
+  await expect(page.getByText("In position", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Out of position", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Flop · Your turn", { exact: true })).toBeVisible();
 });
 
 test("additional-hand modal saves, edits, and removes an exact combo", async ({ page }) => {
