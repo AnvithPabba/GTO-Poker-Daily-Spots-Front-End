@@ -79,7 +79,42 @@ The host binding is loopback-only during development. A public deployment
 must point the browser at an authenticated HTTPS API; keeping backend source
 private does not make a browser `localhost` endpoint reachable by users.
 
-## Frontend architecture
+## System boundary
+
+This repository contains only browser/static-frontend code. The Express API,
+queue worker, and PostgreSQL definitions are separate repositories assembled by
+the [full-stack repository](https://github.com/AnvithPabba/GTO-Poker-Daily-Spots).
+
+```mermaid
+flowchart LR
+    Browser[Browser] --> Nginx[Nginx static server]
+
+    subgraph FrontendRepo[Front-End repository — this repo]
+      Nginx --> React[React application]
+      React --> Client[Typed API client]
+    end
+
+    subgraph BackendRepo[Back-End repository — separate submodule]
+      API[Express API]
+      Worker[Scheduler / queue worker]
+    end
+
+    subgraph DatabaseRepo[DB repository — separate submodule]
+      Schema[Prisma migrations]
+      Snapshot[Validated demo snapshot]
+    end
+
+    Client -->|HTTPS /api/v1| API
+    API --> Postgres[(PostgreSQL)]
+    Worker --> Postgres
+    Schema --> Postgres
+    Snapshot --> Postgres
+```
+
+The browser cannot access PostgreSQL and never receives private solution
+payloads. It communicates only with the backend's public HTTP API.
+
+## Frontend-internal architecture
 
 `src/api/client.ts` is the only server communication module. Feature pages use
 TanStack Query; poker calculations live in `src/domain`; table, allocator,
